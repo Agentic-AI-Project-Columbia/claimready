@@ -35,7 +35,7 @@ from reportlab.platypus import (
 )
 
 from schema import CaseFacts
-from tools.jurisdiction import compute_damages
+from tools.jurisdiction import _compute_damages_impl
 
 TEMPLATES_DIR = Path(__file__).resolve().parent.parent / "templates"
 
@@ -219,7 +219,7 @@ def _render_demand_letter(story, st, facts: CaseFacts):
     story.append(Paragraph("DEMAND LETTER (send first; keep certified-mail receipt)", st["h1"]))
     story.append(Spacer(1, 0.1 * inch))
 
-    dmg = compute_damages(facts.damages.principal, facts.breach.date.isoformat() if facts.breach.date else date.today().isoformat())
+    dmg = _compute_damages_impl(facts.damages.principal, facts.breach.date.isoformat() if facts.breach.date else date.today().isoformat())
     today = date.today().isoformat()
     short = facts.contract.scope_of_work or "Outstanding invoice"
 

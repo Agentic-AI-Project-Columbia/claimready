@@ -34,21 +34,13 @@ class DamagesResult(BaseModel):
     days_elapsed: int
 
 
-@function_tool
-def validate_jurisdiction(
+def _validate_jurisdiction_impl(
     amount_owed: float,
     breach_date_iso: str,
     borough: str,
     defendant_in_nyc: bool,
 ) -> JurisdictionResult:
-    """Validate NYC small-claims jurisdiction for a candidate filing.
-
-    Args:
-        amount_owed: Principal claim in USD.
-        breach_date_iso: Date of breach as ISO string (YYYY-MM-DD).
-        borough: One of Manhattan / Bronx / Brooklyn / Queens / Staten Island.
-        defendant_in_nyc: Whether the defendant has a NYC address or does business in NYC.
-    """
+    """Direct-call implementation. The @function_tool below wraps this for the agent."""
     issues: List[str] = []
     citations: List[str] = []
 
@@ -89,14 +81,8 @@ def validate_jurisdiction(
     )
 
 
-@function_tool
-def compute_damages(principal: float, breach_date_iso: str) -> DamagesResult:
-    """Compute principal + statutory 9% pre-judgment interest from breach date.
-
-    Args:
-        principal: Amount owed at the time of breach.
-        breach_date_iso: ISO date (YYYY-MM-DD) when payment first became overdue.
-    """
+def _compute_damages_impl(principal: float, breach_date_iso: str) -> DamagesResult:
+    """Direct-call implementation. The @function_tool below wraps this for the agent."""
     try:
         bdate = date.fromisoformat(breach_date_iso)
     except ValueError:
@@ -111,3 +97,32 @@ def compute_damages(principal: float, breach_date_iso: str) -> DamagesResult:
         daily_interest=round(daily, 4),
         days_elapsed=days,
     )
+
+
+@function_tool
+def validate_jurisdiction(
+    amount_owed: float,
+    breach_date_iso: str,
+    borough: str,
+    defendant_in_nyc: bool,
+) -> JurisdictionResult:
+    """Validate NYC small-claims jurisdiction for a candidate filing.
+
+    Args:
+        amount_owed: Principal claim in USD.
+        breach_date_iso: Date of breach as ISO string (YYYY-MM-DD).
+        borough: One of Manhattan / Bronx / Brooklyn / Queens / Staten Island.
+        defendant_in_nyc: Whether the defendant has a NYC address or does business in NYC.
+    """
+    return _validate_jurisdiction_impl(amount_owed, breach_date_iso, borough, defendant_in_nyc)
+
+
+@function_tool
+def compute_damages(principal: float, breach_date_iso: str) -> DamagesResult:
+    """Compute principal + statutory 9% pre-judgment interest from breach date.
+
+    Args:
+        principal: Amount owed at the time of breach.
+        breach_date_iso: ISO date (YYYY-MM-DD) when payment first became overdue.
+    """
+    return _compute_damages_impl(principal, breach_date_iso)
