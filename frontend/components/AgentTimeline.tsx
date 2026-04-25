@@ -9,6 +9,7 @@ import {
   CheckCircle2,
   AlertCircle,
   Loader2,
+  type LucideIcon,
 } from 'lucide-react';
 import clsx from 'clsx';
 import type { AgentEvent } from '@/lib/types';
@@ -20,7 +21,7 @@ interface Props {
 
 interface RailItem {
   key: string;
-  icon: React.ComponentType<{ size?: number; className?: string }>;
+  icon: LucideIcon;
   label: string;
   detail?: string;
   status: 'queued' | 'running' | 'done' | 'error';
