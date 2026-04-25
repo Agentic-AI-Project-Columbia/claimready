@@ -22,7 +22,7 @@ steps:
   args:
     - build
     - -t
-    - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPO}/${_BACKEND_NAME}:$SHORT_SHA
+    - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPO}/${_BACKEND_NAME}:$BUILD_ID
     - -t
     - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPO}/${_BACKEND_NAME}:latest
     - ./backend
@@ -39,7 +39,7 @@ steps:
     - run
     - deploy
     - ${_BACKEND_NAME}
-    - --image=${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPO}/${_BACKEND_NAME}:$SHORT_SHA
+    - --image=${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPO}/${_BACKEND_NAME}:$BUILD_ID
     - --region=${_REGION}
     - --platform=managed
     - --allow-unauthenticated
@@ -73,7 +73,7 @@ steps:
       BACKEND_URL=$(cat /workspace/backend_url)
       docker build \
         --build-arg NEXT_PUBLIC_BACKEND_URL=$$BACKEND_URL \
-        -t ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPO}/${_FRONTEND_NAME}:$SHORT_SHA \
+        -t ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPO}/${_FRONTEND_NAME}:$BUILD_ID \
         -t ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPO}/${_FRONTEND_NAME}:latest \
         ./frontend
   waitFor: [backend-url]
@@ -90,7 +90,7 @@ steps:
     - run
     - deploy
     - ${_FRONTEND_NAME}
-    - --image=${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPO}/${_FRONTEND_NAME}:$SHORT_SHA
+    - --image=${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPO}/${_FRONTEND_NAME}:$BUILD_ID
     - --region=${_REGION}
     - --platform=managed
     - --allow-unauthenticated
