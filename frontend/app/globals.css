@@ -1,0 +1,59 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600;8..60,700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+:root {
+  color-scheme: light;
+}
+
+html, body {
+  background: #FAF7F2;
+  color: #1B1A17;
+  font-family: var(--font-sans, 'Inter', system-ui, sans-serif);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Subtle paper texture on the body */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background:
+    radial-gradient(ellipse at top left, rgba(99, 138, 107, 0.08), transparent 50%),
+    radial-gradient(ellipse at bottom right, rgba(217, 164, 65, 0.05), transparent 50%);
+}
+
+/* Form input baseline */
+input, textarea, select {
+  background: white;
+  border: 1px solid #E8DFCE;
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 15px;
+  color: #1B1A17;
+  width: 100%;
+  transition: border-color 120ms ease, box-shadow 120ms ease;
+}
+input:focus, textarea:focus, select:focus {
+  outline: none;
+  border-color: #3F5F46;
+  box-shadow: 0 0 0 3px rgba(99, 138, 107, 0.18);
+}
+label {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  color: #2F4A36;
+  margin-bottom: 6px;
+  letter-spacing: 0.01em;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-thumb { background: #E8DFCE; border-radius: 6px; }
+::-webkit-scrollbar-thumb:hover { background: #C9BBA0; }

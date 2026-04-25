@@ -1,0 +1,27 @@
+.env
+.env.local
+__pycache__/
+*.pyc
+backend/data/chroma/
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+
+# Next.js
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+frontend/build/
+frontend/.vercel/
+frontend/next-env.d.ts
+
+# Misc
+.DS_Store
+*.log
+
+# Local-only — assignment brief, not for the public repo
+Project Description.txt
+
+# Local Claude Code settings (per-machine)
+.claude/

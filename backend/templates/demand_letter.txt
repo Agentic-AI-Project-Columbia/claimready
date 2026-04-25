@@ -1,0 +1,53 @@
+{plaintiff_name}
+{plaintiff_address}
+{plaintiff_city}, {plaintiff_state} {plaintiff_zip}
+{plaintiff_email}
+{plaintiff_phone}
+
+{today_date}
+
+VIA CERTIFIED MAIL — RETURN RECEIPT REQUESTED
+
+{defendant_legal_name}
+c/o {defendant_service_name}
+{defendant_service_address}
+
+Re: Final Demand for Payment — {short_description} — Amount Due ${total_demanded}
+
+To Whom It May Concern:
+
+This letter constitutes a final pre-litigation demand for payment of
+${total_demanded} owed by {defendant_legal_name} to me under our
+agreement dated {contract_date}.
+
+Pursuant to that agreement, I performed and delivered {scope_of_work}.
+Payment of ${principal} became due on {payment_due_date} and remains
+unpaid as of the date of this letter.
+
+The total currently owed is broken down as follows:
+
+  Principal ............................. ${principal}
+  Interest at 9% per annum (CPLR § 5004)
+    from {breach_date} ({days_elapsed} days) ${interest_accrued}
+                                          ----------
+  TOTAL DUE ............................ ${total_demanded}
+
+If full payment is not received within fourteen (14) days of your receipt of
+this letter, I will commence an action against {defendant_legal_name} in the
+NYC Civil Court, Small Claims Part, {borough} County, without further notice.
+You will additionally be liable for the costs and disbursements of that
+action, including any award of statutory interest accruing through the date
+of judgment.
+
+Payment may be made by check payable to {plaintiff_name} and mailed to the
+address above, or by any other reasonable method we agree on in writing.
+
+This letter is sent in good faith. I would prefer to resolve this matter
+without court intervention. Please contact me promptly if you wish to do so.
+
+Sincerely,
+
+
+
+_________________________________
+{plaintiff_name}
