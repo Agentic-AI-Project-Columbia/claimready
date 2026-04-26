@@ -222,7 +222,7 @@ async def _run_case(case_id: str, intake: Dict[str, Any]) -> None:
         planner = get_planner()
         prompt = _build_prompt(intake)
 
-        result = Runner.run_streamed(planner, prompt)
+        result = Runner.run_streamed(planner, prompt, max_turns=50)
         async for event in result.stream_events():
             await _forward_event(case_id, event)
 
