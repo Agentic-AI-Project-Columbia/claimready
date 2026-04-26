@@ -1,0 +1,67 @@
+\documentclass[11pt]{article}
+\usepackage[margin=0.50in]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage{array}
+\usepackage{booktabs}
+\usepackage{hyperref}
+\usepackage{xcolor}
+
+\definecolor{quietgreen}{HTML}{355E3B}
+\definecolor{quietink}{HTML}{1F2421}
+
+\hypersetup{
+  colorlinks=true,
+  urlcolor=quietgreen,
+  linkcolor=quietgreen
+}
+
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{2.6pt}
+\renewcommand{\arraystretch}{1.08}
+\pagestyle{empty}
+
+\begin{document}
+\pagecolor{white}
+\color{quietink}
+
+{\Large\bfseries\color{quietink} Quietcase: Small Claims, Filed Right}\\[-1pt]
+{\color{quietgreen}\rule{\linewidth}{0.8pt}}\\[-3pt]
+{\large\bfseries\color{quietgreen} For the invoice too small for a lawyer and too large to write off.}\\[-1pt]
+Quietcase helps NYC freelancers turn messy contracts, invoices, emails, and screenshots into a court-ready small-claims packet for unpaid service work.
+
+{\color{quietgreen}\rule{\linewidth}{0.35pt}}\vspace{-3pt}
+
+{\bfseries The user.} The concrete user is a New York City freelancer or solo service provider owed \(\$1{,}000\)--\(\$10{,}000\) by a NY-registered LLC or corporation: a designer, developer, photographer, writer, tutor, consultant, or marketer with a contract, invoice, emails, screenshots, or notes showing completed work and nonpayment. This is not a niche edge case. Upwork estimates that 64 million Americans freelanced in 2023, or 38\% of the U.S. workforce. A New York freelancer survey found that 62\% experienced nonpayment; among those who lost income, 51\% lost more than \(\$1{,}000\) and 22\% lost more than \(\$5{,}000\).
+
+{\bfseries The problem.} Today, the user sends awkward follow-up emails, copies a generic demand-letter template, gives up, or tries to file in small claims alone. Hiring counsel rarely makes sense: Clio reports the average New York lawyer hourly rate at \(\$426\), which can consume the economics of a \(\$2{,}000\)--\(\$5{,}000\) claim. Small claims is designed for this gap, but filing still requires the user to identify the correct legal defendant, find a service address, choose venue, organize exhibits, calculate damages, and create forms the clerk can process. NYC Small Claims allows claims up to \(\$10{,}000\) with only a \(\$15\)--\(\$20\) filing fee, but the paperwork and confidence gap stop many people before they start.
+
+{\bfseries The economics.} Quietcase charges \(\$29\) per completed packet. For one user-month, assume one case packet: about 120k input tokens for intake, evidence, retrieval, and tool context, plus 15k output tokens for extracted facts, agent outputs, and final drafting. With Gemini 2.5 Flash pricing around \(\$0.30\) per 1M input tokens and \(\$2.50\) per 1M output tokens, model cost is about \(\$0.07\) per case. Adding Cloud Run, storage, PDF generation, logs, failed runs, payment fees, and light support gives an estimated variable cost of \(\$3\)--\(\$5\). At \(\$29\), gross margin is roughly 83\%--90\% before fixed engineering and acquisition.
+
+\vspace{-1pt}
+\begin{center}
+\begin{tabular}{>{\bfseries}p{1.55in}p{1.42in}p{3.18in}}
+\toprule
+Item & Estimate & Why it matters \\
+\midrule
+Price & \(\$29\) / packet & Affordable for a claim too small for counsel but too large to abandon. \\
+Model cost & \(\sim\$0.07\) & Token economics are tiny relative to price, enabling pay-per-case. \\
+Variable cost & \(\$3\)--\(\$5\) & Includes runtime, storage, PDF, payment fees, failed runs, and light support. \\
+Break point & Scope creep & Huge evidence sets, multi-claim disputes, attorney review, or nationwide rules destroy margin. \\
+\bottomrule
+\end{tabular}
+\end{center}
+\vspace{-1pt}
+
+{\bfseries Why these technical choices.} The agent design mirrors the real filing workflow. The Next.js wizard collects only the facts the court needs, reducing user confusion. The Extractor reads messy contracts, invoices, emails, and screenshots so users do not have to translate evidence into legal structure. The DefendantResolver calls the NY Department of State dataset because suing the wrong entity or using the wrong service address can sink the case. The JurisdictionChecker uses deterministic tools and a small Chroma RAG corpus to validate the \(\$10{,}000\) cap, statute-of-limitations fit, venue, and citations without expensive broad research. Structured Pydantic outputs make the PDF renderer reliable. Gemini 2.5 Flash is the right model because it supports multimodal, long-context evidence review while keeping per-case token cost far below the \(\$29\) price.
+
+{\bfseries Close.} Quietcase wins by being deliberately small: not ``AI lawyer for everything,'' but a cheap, focused filing assistant for one painful, common, economically underserved legal workflow.
+
+\vspace{1pt}
+{\scriptsize
+Sources: \href{https://www.upwork.com/press/releases/upwork-study-finds-64-million-americans-freelanced-in-2023-adding-1-27-trillion-to-u-s-economy}{Upwork Freelance Forward 2023};
+\href{https://nwu.org/survey-shows-that-62-of-ny-freelancers-experience-non-payment-need-freelance-isnt-free-law-statewide/}{NY freelancer nonpayment survey};
+\href{https://nycourts.gov/courts/nyc/smallclaims/forms/instructionsforfiling.pdf}{NYC Small Claims filing instructions};
+\href{https://www.clio.com/resources/legal-trends/compare-lawyer-rates/ny/}{Clio NY lawyer rates};
+\href{https://cloud.google.com/vertex-ai/generative-ai/pricing}{Google Vertex AI pricing}.}
+
+\end{document}
