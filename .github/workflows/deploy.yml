@@ -1,0 +1,42 @@
+name: Deploy to Cloud Run
+
+on:
+  push:
+    branches: [main]
+
+env:
+  PROJECT_ID: agentic-ai-487000
+  REGION: us-east1
+  BACKEND_NAME: quietcase-backend
+  FRONTEND_NAME: quietcase-frontend
+  AR_REPO: quietcase
+
+jobs:
+  deploy:
+    name: Build & Deploy
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      id-token: write   # required for Workload Identity Federation
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ env.PROJECT_ID }}
+
+      - name: Submit Cloud Build
+        run: |
+          gcloud builds submit \
+            --config cloudbuild.yaml \
+            --substitutions="_REGION=$REGION,_BACKEND_NAME=$BACKEND_NAME,_FRONTEND_NAME=$FRONTEND_NAME,_AR_REPO=$AR_REPO" \
+            --project=$PROJECT_ID
