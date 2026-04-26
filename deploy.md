@@ -1,11 +1,11 @@
 # Deploy to GCP Cloud Run
 
-Project: `csee4121-s26-492100` · Region: `us-east1` · Model: Gemini 2.5 Flash via Vertex AI.
+Project: `agentic-ai-487000` · Region: `us-east1` · Model: Gemini 2.5 Flash via Vertex AI.
 
 ## One-time setup (already done if `gcloud services list` shows the four APIs)
 
 ```bash
-gcloud config set project csee4121-s26-492100
+gcloud config set project agentic-ai-487000
 gcloud config set run/region us-east1
 
 # Enable APIs (already enabled — listed for reference)
@@ -22,16 +22,16 @@ gcloud artifacts repositories create quietcase \
   --description="Quietcase Docker images"
 
 # Grant Cloud Run runtime SA access to Vertex AI
-PROJECT_NUMBER=$(gcloud projects describe csee4121-s26-492100 --format='value(projectNumber)')
-gcloud projects add-iam-policy-binding csee4121-s26-492100 \
+PROJECT_NUMBER=$(gcloud projects describe agentic-ai-487000 --format='value(projectNumber)')
+gcloud projects add-iam-policy-binding agentic-ai-487000 \
   --member="serviceAccount:${PROJECT_NUMBER}-compute@developer.gserviceaccount.com" \
   --role="roles/aiplatform.user"
 
 # Grant Cloud Build SA the deploy + service-account-user roles
-gcloud projects add-iam-policy-binding csee4121-s26-492100 \
+gcloud projects add-iam-policy-binding agentic-ai-487000 \
   --member="serviceAccount:${PROJECT_NUMBER}@cloudbuild.gserviceaccount.com" \
   --role="roles/run.admin"
-gcloud projects add-iam-policy-binding csee4121-s26-492100 \
+gcloud projects add-iam-policy-binding agentic-ai-487000 \
   --member="serviceAccount:${PROJECT_NUMBER}@cloudbuild.gserviceaccount.com" \
   --role="roles/iam.serviceAccountUser"
 ```
@@ -64,7 +64,7 @@ cd backend
 python -m venv .venv && source .venv/bin/activate     # or: .venv\Scripts\activate on Windows
 pip install -r requirements.txt
 gcloud auth application-default login                  # one-time, for Vertex AI auth
-export GCP_PROJECT_ID=csee4121-s26-492100
+export GCP_PROJECT_ID=agentic-ai-487000
 export GCP_REGION=us-east1
 uvicorn main:app --reload --port 8000
 

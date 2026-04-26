@@ -38,7 +38,7 @@ def _model() -> LitellmModel:
       - On Cloud Run: the service's runtime service account
     """
     model_id = os.getenv("AGENT_MODEL", "vertex_ai/gemini-2.5-flash")
-    project = os.getenv("GCP_PROJECT_ID", "csee4121-s26-492100")
+    project = os.getenv("GCP_PROJECT_ID", "agentic-ai-487000")
     location = os.getenv("GCP_REGION", "us-east1")
     # LiteLLM picks these up automatically:
     os.environ.setdefault("VERTEXAI_PROJECT", project)

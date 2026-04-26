@@ -12,9 +12,9 @@ defendant is a NY-registered LLC or corp · output is PDF (no e-filing).
 
 ## Live URLs
 
-- **Frontend:** https://quietcase-frontend-xo2itdlc3a-ue.a.run.app
-- **Backend (API):** https://quietcase-backend-xo2itdlc3a-ue.a.run.app
-- **Demo scenario JSON:** https://quietcase-backend-xo2itdlc3a-ue.a.run.app/api/demo/scenario
+- **Frontend:** https://quietcase-frontend-7pj7nolpla-ue.a.run.app
+- **Backend (API):** https://quietcase-backend-7pj7nolpla-ue.a.run.app
+- **Demo scenario JSON:** https://quietcase-backend-7pj7nolpla-ue.a.run.app/api/demo/scenario
 
 ---
 
@@ -38,12 +38,12 @@ Programmatic demo (no UI):
 ```bash
 # 1. Kick off a run
 CASE=$(curl -sS -X POST -H "Content-Length: 0" \
-  https://quietcase-backend-xo2itdlc3a-ue.a.run.app/api/demo/run \
+  https://quietcase-backend-7pj7nolpla-ue.a.run.app/api/demo/run \
   | python -c "import sys,json; print(json.load(sys.stdin)['case_id'])")
 
 # 2. Poll until the PDF is ready (~60–90s for the four-agent run)
 until curl -fsS -o packet.pdf \
-  "https://quietcase-backend-xo2itdlc3a-ue.a.run.app/api/case/$CASE/pdf"; do
+  "https://quietcase-backend-7pj7nolpla-ue.a.run.app/api/case/$CASE/pdf"; do
   sleep 5
 done && open packet.pdf
 ```
