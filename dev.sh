@@ -8,9 +8,19 @@ ROOT="$(cd "$(dirname "$0")" && pwd)"
 # ── Backend ────────────────────────────────────────────────────────────────────
 echo "Starting backend on http://localhost:8000 ..."
 cd "$ROOT/backend"
-export GCP_PROJECT_ID="${GCP_PROJECT_ID:-agentic-ai-487000}"
+# Use whatever gcloud project is active on this machine
+GCP_PROJECT_ID=$(gcloud config get-value project 2>/dev/null)
+export GCP_PROJECT_ID
 export GCP_REGION="${GCP_REGION:-us-east1}"
-uv run uvicorn main:app --reload --port 8000 &
+export VERTEXAI_PROJECT="${GCP_PROJECT_ID}"
+export GOOGLE_CLOUD_QUOTA_PROJECT="${GCP_PROJECT_ID}"
+export OPENAI_AGENTS_DISABLE_TRACING=1   # no OpenAI key needed; disable SDK tracing
+echo "Using GCP project: $GCP_PROJECT_ID"
+uv run uvicorn main:app --reload \
+  --reload-dir "$ROOT/backend" \
+  --reload-exclude "$ROOT/backend/.venv" \
+  --reload-exclude "*.pyc" \
+  --port 8000 &
 BACKEND_PID=$!
 echo "Backend PID: $BACKEND_PID"
 

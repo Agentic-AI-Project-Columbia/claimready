@@ -37,12 +37,21 @@ def _model() -> LitellmModel:
       - Locally: `gcloud auth application-default login`
       - On Cloud Run: the service's runtime service account
     """
+    import litellm
+
     model_id = os.getenv("AGENT_MODEL", "vertex_ai/gemini-2.5-flash")
     project = os.getenv("GCP_PROJECT_ID", "agentic-ai-487000")
     location = os.getenv("GCP_REGION", "us-east1")
     # LiteLLM picks these up automatically:
     os.environ.setdefault("VERTEXAI_PROJECT", project)
     os.environ.setdefault("VERTEXAI_LOCATION", location)
+
+    # Auto-retry on 429 / 503 with exponential backoff (3 attempts, up to ~32 s wait).
+    # This prevents a mid-stream RateLimitError from crashing the whole pipeline when
+    # running back-to-back demo runs against a standard Vertex AI quota.
+    litellm.num_retries = 3
+    litellm.retry_after = 10  # base wait seconds before first retry
+
     return LitellmModel(model=model_id)
 
 

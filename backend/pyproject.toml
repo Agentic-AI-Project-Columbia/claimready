@@ -15,4 +15,6 @@ dependencies = [
     "requests>=2.32.0",
     "python-dotenv>=1.0.0",
     "python-multipart>=0.0.12",
+    "websockets>=16.0",
+    "httpx>=0.28.1",
 ]

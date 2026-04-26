@@ -287,20 +287,38 @@ def _facts_from_intake(intake: Dict[str, Any]) -> CaseFacts:
 async def _forward_event(case_id: str, event: Any) -> None:
     """Translate a Runner stream event into our wire-format JSON."""
     try:
-        # The OpenAI Agents SDK stream emits a small set of event types.
-        # We forward them as opaque dicts with a normalized "type".
         et = getattr(event, "type", None) or event.__class__.__name__
         payload: Dict[str, Any] = {"type": et}
-        # Best-effort extraction of useful fields.
-        for attr in ("name", "agent", "from_agent", "to_agent", "tool_name", "args"):
+
+        for attr in ("name", "agent", "from_agent", "to_agent", "tool_name"):
             v = getattr(event, attr, None)
             if v is not None:
                 payload[attr] = v if isinstance(v, (str, int, float, bool, dict, list)) else str(v)
+
+        # Tool call arguments — show full args so the UI can display what was searched
+        args = getattr(event, "args", None)
+        if args is not None:
+            try:
+                payload["args"] = args if isinstance(args, dict) else json.loads(str(args))
+            except Exception:
+                payload["args"] = str(args)[:300]
+
+        # Result / data preview — increased to 1200 chars for richer display
         if hasattr(event, "data") and event.data is not None:
             try:
-                payload["preview"] = str(event.data)[:400]
+                raw = str(event.data)
+                payload["preview"] = raw[:1200]
+                payload["preview_truncated"] = len(raw) > 1200
             except Exception:
                 pass
+
+        # Surface the current agent name wherever possible
+        item = getattr(event, "item", None)
+        if item is not None:
+            agent_name = getattr(item, "agent", None) or getattr(item, "name", None)
+            if agent_name and "agent" not in payload:
+                payload["agent"] = str(agent_name)
+
         await _emit(case_id, payload)
     except Exception as exc:
         log.warning("event forward failed: %s", exc)

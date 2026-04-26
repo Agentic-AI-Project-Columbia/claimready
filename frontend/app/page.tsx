@@ -10,6 +10,8 @@ import {
   Shield,
   GraduationCap,
   PlayCircle,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react';
 import clsx from 'clsx';
 
@@ -665,6 +667,140 @@ function ReviewStep({
 //                              Run (Step 8)                                   //
 // --------------------------------------------------------------------------- //
 
+/** The hardcoded facts for the one-click demo — matches backend/demo_scenario.py */
+const DEMO_CASE = {
+  plaintiff: { name: 'Jane Q. Doe', address: '123 Smith Street, Brooklyn NY 11201', email: 'jane@janedoedesign.example' },
+  defendant: { name: 'Acme Widgets LLC', note: 'NY DOS lookup will resolve the official registered address' },
+  contract: {
+    date: 'January 15, 2025',
+    scope: '12 original illustrations + 1 brand-color guideline for Spring 2025 product launch',
+    amount: '$4,800.00',
+    terms: 'Net 30 from delivery',
+  },
+  timeline: [
+    { date: 'Mar 1, 2025', event: 'All files delivered on time; invoice #2025-001 issued' },
+    { date: 'Mar 3, 2025', event: 'Client confirms receipt in writing: "illustrations look fantastic"' },
+    { date: 'Mar 31, 2025', event: 'Payment due — nothing received (breach date)' },
+    { date: 'Apr 1, 2025', event: 'First payment reminder sent — no reply' },
+    { date: 'Apr 14, 2025', event: 'Second email + phone call to Mihir\'s direct line — voicemail' },
+    { date: 'Apr 17, 2025', event: 'Called main line — "accounting will call back in 24h" — never did' },
+    { date: 'Apr 21, 2025', event: 'Final notice email threatening small-claims filing' },
+  ],
+  evidence: [
+    { file: '01_services_agreement.txt', desc: 'Signed contract — scope, $4,800 flat fee, Net 30, Kings County jurisdiction' },
+    { file: '02_invoice_2025_001.txt', desc: 'Invoice #2025-001 — itemised line items totaling $4,800, due Mar 31' },
+    { file: '03_email_thread.eml', desc: '5-email thread — delivery, client confirmation, 3× unanswered follow-ups' },
+    { file: '04_followup_note.txt', desc: 'Personal log — phone call attempts, dates, amounts, SOL analysis' },
+  ],
+  legal: [
+    'CCA § 1805 — $10,000 monetary cap ✓ ($4,800 qualifies)',
+    'CPLR § 213(2) — 6-year SOL ✓ (breach Mar 31, 2025)',
+    'CPLR § 5004 — 9% pre-judgment interest will be computed',
+    'Venue: Kings County (Brooklyn) — contract performance + defendant location',
+  ],
+};
+
+function DemoCaseBrief() {
+  const [timelineOpen, setTimelineOpen] = useState(false);
+
+  return (
+    <div className="rounded-2xl border border-ochre-400/30 bg-gradient-to-br from-ochre-400/5 to-white divide-y divide-ink-200/60 text-sm">
+
+      {/* Header */}
+      <div className="flex items-center gap-3 px-5 py-4">
+        <GraduationCap size={18} className="text-ochre-600 shrink-0" />
+        <div>
+          <p className="text-[10px] uppercase tracking-widest font-bold text-ochre-600">Demo scenario</p>
+          <p className="font-serif text-base text-ink-900 leading-snug">
+            Freelance designer vs. NYC LLC — $4,800 unpaid invoice
+          </p>
+        </div>
+      </div>
+
+      {/* Parties */}
+      <div className="grid grid-cols-2 gap-4 px-5 py-4">
+        <div>
+          <p className="text-[10px] uppercase tracking-widest text-ink-300 font-semibold mb-1">Plaintiff</p>
+          <p className="font-medium text-ink-900">{DEMO_CASE.plaintiff.name}</p>
+          <p className="text-ink-400 text-xs">{DEMO_CASE.plaintiff.address}</p>
+        </div>
+        <div>
+          <p className="text-[10px] uppercase tracking-widest text-ink-300 font-semibold mb-1">Defendant</p>
+          <p className="font-medium text-ink-900">{DEMO_CASE.defendant.name}</p>
+          <p className="text-ink-400 text-xs">{DEMO_CASE.defendant.note}</p>
+        </div>
+      </div>
+
+      {/* Contract */}
+      <div className="px-5 py-4 space-y-1.5">
+        <p className="text-[10px] uppercase tracking-widest text-ink-300 font-semibold mb-2">The contract</p>
+        <div className="grid grid-cols-3 gap-x-4 text-xs">
+          <span className="text-ink-400">Signed</span>
+          <span className="col-span-2 text-ink-900">{DEMO_CASE.contract.date}</span>
+        </div>
+        <div className="grid grid-cols-3 gap-x-4 text-xs">
+          <span className="text-ink-400">Scope</span>
+          <span className="col-span-2 text-ink-900">{DEMO_CASE.contract.scope}</span>
+        </div>
+        <div className="grid grid-cols-3 gap-x-4 text-xs">
+          <span className="text-ink-400">Amount</span>
+          <span className="col-span-2 font-semibold text-ink-900">{DEMO_CASE.contract.amount}</span>
+        </div>
+        <div className="grid grid-cols-3 gap-x-4 text-xs">
+          <span className="text-ink-400">Payment</span>
+          <span className="col-span-2 text-ink-900">{DEMO_CASE.contract.terms}</span>
+        </div>
+      </div>
+
+      {/* Timeline toggle */}
+      <div className="px-5 py-3">
+        <button
+          className="w-full flex items-center justify-between text-xs font-semibold text-ink-400 hover:text-ink-700 transition"
+          onClick={() => setTimelineOpen(o => !o)}
+        >
+          <span className="uppercase tracking-widest">Case timeline ({DEMO_CASE.timeline.length} events)</span>
+          {timelineOpen ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+        </button>
+        {timelineOpen && (
+          <ol className="mt-3 space-y-2 border-l-2 border-ink-200 pl-4">
+            {DEMO_CASE.timeline.map((t, i) => (
+              <li key={i} className="text-xs relative before:absolute before:-left-[1.1rem] before:top-1.5 before:w-2 before:h-2 before:rounded-full before:bg-ink-200">
+                <span className="text-ochre-600 font-semibold">{t.date}</span>
+                <span className="text-ink-700 ml-2">{t.event}</span>
+              </li>
+            ))}
+          </ol>
+        )}
+      </div>
+
+      {/* Evidence */}
+      <div className="px-5 py-4">
+        <p className="text-[10px] uppercase tracking-widest text-ink-300 font-semibold mb-2">Evidence loaded ({DEMO_CASE.evidence.length} files)</p>
+        <ul className="space-y-1.5">
+          {DEMO_CASE.evidence.map((e, i) => (
+            <li key={i} className="text-xs flex gap-2">
+              <span className="font-mono text-sage-600 shrink-0">{e.file}</span>
+              <span className="text-ink-400">{e.desc}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      {/* Legal checks */}
+      <div className="px-5 py-4">
+        <p className="text-[10px] uppercase tracking-widest text-ink-300 font-semibold mb-2">Legal checklist the agents will verify</p>
+        <ul className="space-y-1">
+          {DEMO_CASE.legal.map((l, i) => (
+            <li key={i} className="text-xs text-ink-600 flex gap-1.5">
+              <span className="text-sage-500 shrink-0">·</span>{l}
+            </li>
+          ))}
+        </ul>
+      </div>
+    </div>
+  );
+}
+
 function RunStep({
   caseId,
   events,
@@ -681,43 +817,38 @@ function RunStep({
   const downloadHref = useMemo(() => (caseId ? pdfURL(caseId) : '#'), [caseId]);
 
   return (
-    <div className="max-w-4xl mx-auto animate-fade-in-up">
-      {isDemo && (
-        <div className="mb-6 flex items-start gap-3 rounded-xl border border-ochre-400/30 bg-ochre-400/10 px-4 py-3 text-sm text-ink-900/80">
-          <GraduationCap size={18} className="text-ochre-600 mt-0.5 shrink-0" />
-          <div>
-            <p className="font-semibold text-ochre-600 mb-0.5">Demo mode</p>
-            <p>
-              Running the bundled scenario: <i>Brooklyn freelance designer
-              owed $4,800 by a NYC marketing LLC.</i> Four evidence files
-              (contract, invoice, email thread, follow-up note) were
-              uploaded for you. The agents below are doing real work — real
-              NY DOS API call, real RAG over the legal corpus, real PDF
-              generation.
-            </p>
-          </div>
-        </div>
-      )}
+    <div className="max-w-6xl mx-auto animate-fade-in-up">
       <p className="text-xs uppercase tracking-[0.2em] text-sage-600 font-semibold mb-3">
         {isDemo ? 'Demo run · Building the packet' : 'Step 8 of 7 · Building your packet'}
       </p>
       <h1 className="font-serif text-3xl md:text-4xl text-ink-900 leading-tight mb-2">
         {done && !error
-          ? 'Your packet is ready.'
+          ? 'Packet is ready.'
           : error
           ? 'Something interrupted the build.'
-          : 'The agents are working on your case.'}
+          : 'The agents are working on the case.'}
       </h1>
-      <p className="text-ink-900/70 mb-10 max-w-2xl">
+      <p className="text-ink-900/70 mb-8 max-w-2xl">
         {done && !error
-          ? 'Download the PDF below. It contains your demand letter, a court-ready Statement of Claim, an exhibit index, and a one-page filing guide for your borough.'
+          ? 'Download the PDF below. It contains a demand letter, court-ready Statement of Claim, exhibit index, and filing guide.'
           : error
           ? error
-          : 'This usually takes 30–60 seconds. Each step is a separate specialist agent — you can watch them hand off below.'}
+          : 'This takes 30–60 s. Each specialist agent runs in sequence — watch them hand off in real time on the right.'}
       </p>
 
-      <div className="bg-white rounded-2xl shadow-paper p-6 md:p-8">
-        <AgentTimeline events={events} isRunning={!done} />
+      {/* Two-column layout in demo mode so the case brief sits beside the timeline */}
+      <div className={clsx(isDemo ? 'grid grid-cols-1 lg:grid-cols-2 gap-6 items-start' : '')}>
+
+        {isDemo && <DemoCaseBrief />}
+
+        <div className="bg-white rounded-2xl shadow-paper p-6 md:p-8">
+          {!isDemo && (
+            <p className="text-xs uppercase tracking-widest text-ink-300 font-semibold mb-4">
+              Agent pipeline
+            </p>
+          )}
+          <AgentTimeline events={events} isRunning={!done} />
+        </div>
       </div>
 
       {done && !error && (
