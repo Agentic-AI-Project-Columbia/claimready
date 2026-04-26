@@ -12,9 +12,9 @@ defendant is a NY-registered LLC or corp · output is PDF (no e-filing).
 
 ## Live URLs
 
-- **Frontend:** *(populated after `gcloud builds submit`)*
-- **Backend (API):** *(populated after `gcloud builds submit`)*
-- **Health:** `<backend>/healthz`
+- **Frontend:** https://quietcase-frontend-xo2itdlc3a-ue.a.run.app
+- **Backend (API):** https://quietcase-backend-xo2itdlc3a-ue.a.run.app
+- **Demo scenario JSON:** https://quietcase-backend-xo2itdlc3a-ue.a.run.app/api/demo/scenario
 
 ---
 
@@ -33,10 +33,22 @@ The bundled scenario: a Brooklyn freelance designer owed $4,800 by an
 NYC marketing LLC, with a signed contract, invoice, email thread, and
 follow-up note as evidence.
 
-Programmatic demo (no UI): `POST <backend>/api/demo/run` returns a
-`case_id`; open `WS <backend>/api/case/<id>/events` to stream events;
-download the PDF at `GET <backend>/api/case/<id>/pdf`. Source:
-[backend/demo_scenario.py](backend/demo_scenario.py).
+Programmatic demo (no UI):
+
+```bash
+# 1. Kick off a run
+CASE=$(curl -sS -X POST -H "Content-Length: 0" \
+  https://quietcase-backend-xo2itdlc3a-ue.a.run.app/api/demo/run \
+  | python -c "import sys,json; print(json.load(sys.stdin)['case_id'])")
+
+# 2. Poll until the PDF is ready (~60–90s for the four-agent run)
+until curl -fsS -o packet.pdf \
+  "https://quietcase-backend-xo2itdlc3a-ue.a.run.app/api/case/$CASE/pdf"; do
+  sleep 5
+done && open packet.pdf
+```
+
+Source: [backend/demo_scenario.py](backend/demo_scenario.py).
 
 ---
 
