@@ -292,7 +292,7 @@ def _render_cover(story, st, facts: CaseFacts):
     story.append(_section_header("HOW TO FILE", st))
 
     steps = [
-        ("1", "Send the demand letter (page 3) first.",
+        ("1", "Send the demand letter first.",
          "Mail it via USPS Certified Mail. Keep the green card receipt — it becomes Exhibit D."),
         ("2", "Wait 14 days.",
          "If unpaid, proceed to the clerk's office at the address above with this packet. "
@@ -304,22 +304,21 @@ def _render_cover(story, st, facts: CaseFacts):
          "Bring the originals of every exhibit. The hearing is informal — no lawyer needed. "
          "The judge decides based on your documents and testimony."),
     ]
-    steps_data = []
     for num, bold, detail in steps:
-        steps_data.append([
-            Paragraph(num, st["step_num"]),
-            [Paragraph(f"<b>{bold}</b>", st["step_body"]),
-             Paragraph(detail, st["step_body"])],
-        ])
-    steps_t = Table(steps_data, colWidths=[0.35 * inch, 6.15 * inch])
-    steps_t.setStyle(TableStyle([
-        ("VALIGN",        (0, 0), (-1, -1), "TOP"),
-        ("TOPPADDING",    (0, 0), (-1, -1), 4),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
-        ("LEFTPADDING",   (0, 0), (0, -1), 0),
-        ("RIGHTPADDING",  (0, 0), (0, -1), 8),
-    ]))
-    story.append(steps_t)
+        step_t = Table(
+            [[Paragraph(num, st["step_num"]),
+              [Paragraph(f"<b>{bold}</b>", st["step_body"]),
+               Paragraph(detail, st["step_body"])]]],
+            colWidths=[0.35 * inch, 6.15 * inch],
+        )
+        step_t.setStyle(TableStyle([
+            ("VALIGN",        (0, 0), (-1, -1), "TOP"),
+            ("TOPPADDING",    (0, 0), (-1, -1), 3),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
+            ("LEFTPADDING",   (0, 0), (0, -1), 0),
+            ("RIGHTPADDING",  (0, 0), (0, -1), 8),
+        ]))
+        story.append(KeepTogether(step_t))
 
     # ── Jurisdiction notes (if any) ───────────────────────────────────────────
     if facts.jurisdiction_check.issues:
@@ -420,7 +419,7 @@ def _render_claim(story, st, facts: CaseFacts):
         f"because {facts.venue.basis or '[basis for venue]'}.",
     ]
     for p in paragraphs:
-        story.append(Paragraph(p, st["body"]))
+        story.append(KeepTogether(Paragraph(p, st["body"])))
 
     # WHEREFORE in a shaded box
     total = facts.damages.total_demanded or facts.damages.principal
@@ -442,24 +441,26 @@ def _render_claim(story, st, facts: CaseFacts):
         ("TOPPADDING",    (0, 0), (-1, -1), 8),
         ("BOTTOMPADDING", (0, 0), (-1, -1), 8),
     ]))
-    story.append(wf_t)
-    story.append(Spacer(1, 0.35 * inch))
+    story.append(KeepTogether(wf_t))
+    story.append(Spacer(1, 0.3 * inch))
 
     today = date.today().isoformat()
-    story.append(Paragraph(
-        f"Dated: {facts.venue.borough or '[borough]'}, New York &nbsp;&nbsp; {today}",
-        st["caption"],
-    ))
-    story.append(Spacer(1, 0.45 * inch))
-    story.append(_hr())
-    story.append(Paragraph(
-        f"<b>{facts.plaintiff.name or '[name]'}</b>, Plaintiff <i>pro se</i><br/>"
-        f"{_full_addr(facts.plaintiff)}<br/>"
-        f"{facts.plaintiff.phone}"
-        f"{'&nbsp; · &nbsp;' if facts.plaintiff.phone and facts.plaintiff.email else ''}"
-        f"{facts.plaintiff.email}",
-        st["caption"],
-    ))
+    story.append(KeepTogether([
+        Paragraph(
+            f"Dated: {facts.venue.borough or '[borough]'}, New York &nbsp;&nbsp; {today}",
+            st["caption"],
+        ),
+        Spacer(1, 0.4 * inch),
+        _hr(),
+        Paragraph(
+            f"<b>{facts.plaintiff.name or '[name]'}</b>, Plaintiff <i>pro se</i><br/>"
+            f"{_full_addr(facts.plaintiff)}<br/>"
+            f"{facts.plaintiff.phone}"
+            f"{'&nbsp; · &nbsp;' if facts.plaintiff.phone and facts.plaintiff.email else ''}"
+            f"{facts.plaintiff.email}",
+            st["caption"],
+        ),
+    ]))
     story.append(PageBreak())
 
 
@@ -529,33 +530,32 @@ def _render_demand_letter(story, st, facts: CaseFacts):
         st["body"],
     ))
 
-    # Amount breakdown — real table, not ASCII
+    # Amount breakdown — plain black & white table (this is a formal legal letter)
     story.append(Spacer(1, 0.05 * inch))
-    story.append(Paragraph("AMOUNT CURRENTLY DUE", st["small_bold"]))
+    r_style = ParagraphStyle("r", parent=st["body_left"], alignment=TA_RIGHT)
+    r_bold  = ParagraphStyle("rb", parent=st["caption_bold"], alignment=TA_RIGHT)
     amt_rows = [
         [Paragraph("Principal (contract price)", st["body_left"]),
-         Paragraph(_money(dmg.principal), ParagraphStyle("r", parent=st["body_left"], alignment=TA_RIGHT))],
-        [Paragraph(f"Pre-judgment interest @ 9% p.a. (CPLR § 5004)<br/>"
-                   f"<font size='8' color='grey'>{dmg.days_elapsed} days from {bd_str}</font>",
+         Paragraph(_money(dmg.principal), r_style)],
+        [Paragraph(f"Pre-judgment interest at 9% per annum (CPLR § 5004),\n"
+                   f"{dmg.days_elapsed} days from {bd_str}",
                    st["body_left"]),
-         Paragraph(_money(dmg.interest_accrued), ParagraphStyle("r", parent=st["body_left"], alignment=TA_RIGHT))],
+         Paragraph(_money(dmg.interest_accrued), r_style)],
         [Paragraph("<b>TOTAL DUE</b>", st["caption_bold"]),
-         Paragraph(f"<b>{_money(dmg.total_demanded)}</b>",
-                   ParagraphStyle("rb", parent=st["caption_bold"], alignment=TA_RIGHT))],
+         Paragraph(f"<b>{_money(dmg.total_demanded)}</b>", r_bold)],
     ]
     amt_t = Table(amt_rows, colWidths=[4.8 * inch, 1.7 * inch])
     amt_t.setStyle(TableStyle([
-        ("BACKGROUND",    (0, 0), (-1, 1), GOLD_LIGHT),
-        ("BACKGROUND",    (0, 2), (-1, 2), colors.HexColor("#FDE8A0")),
-        ("BOX",           (0, 0), (-1, -1), 0.75, GOLD),
-        ("LINEBELOW",     (0, 1), (-1, 1), 0.75, GOLD),
+        ("BOX",           (0, 0), (-1, -1), 0.5, INK),
+        ("LINEBELOW",     (0, 1), (-1, 1), 0.5, INK),
+        ("LINEABOVE",     (0, 2), (-1, 2), 0.5, INK),
         ("VALIGN",        (0, 0), (-1, -1), "MIDDLE"),
         ("LEFTPADDING",   (0, 0), (-1, -1), 8),
         ("RIGHTPADDING",  (0, 0), (-1, -1), 8),
-        ("TOPPADDING",    (0, 0), (-1, -1), 6),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
+        ("TOPPADDING",    (0, 0), (-1, -1), 5),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
     ]))
-    story.append(amt_t)
+    story.append(KeepTogether(amt_t))
     story.append(Spacer(1, 0.2 * inch))
 
     story.append(Paragraph(
@@ -571,11 +571,13 @@ def _render_demand_letter(story, st, facts: CaseFacts):
         "promptly if you wish to discuss payment or a settlement.",
         st["body"],
     ))
-    story.append(Spacer(1, 0.45 * inch))
-    story.append(Paragraph("Sincerely,", st["body_left"]))
-    story.append(Spacer(1, 0.45 * inch))
-    story.append(_hr())
-    story.append(Paragraph(f"<b>{facts.plaintiff.name or '[name]'}</b>", st["caption"]))
+    story.append(Spacer(1, 0.3 * inch))
+    story.append(KeepTogether([
+        Paragraph("Sincerely,", st["body_left"]),
+        Spacer(1, 0.45 * inch),
+        _hr(),
+        Paragraph(f"<b>{facts.plaintiff.name or '[name]'}</b>", st["caption"]),
+    ]))
     story.append(PageBreak())
 
 
