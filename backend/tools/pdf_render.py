@@ -542,8 +542,9 @@ def _render_demand_letter(story, st, facts: CaseFacts):
         st["body_left"],
     ))
     story.append(Spacer(1, 0.05 * inch))
+    due_str = f", due {bd_str}" if bd_str != "[breach date]" else ""
     story.append(Paragraph(
-        f"<b>Re: Final Demand for Payment — {scope_short}</b>",
+        f"<b>Re: Final Demand for Payment — {_money(dmg.total_demanded)} outstanding{due_str}</b>",
         st["body_left"],
     ))
     story.append(_hr())
