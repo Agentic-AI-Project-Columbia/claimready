@@ -63,7 +63,14 @@ class Venue(BaseModel):
     borough: Literal[
         "Manhattan", "Bronx", "Brooklyn", "Queens", "Staten Island", ""
     ] = ""
-    basis: str = ""
+    basis: str = Field(
+        default="",
+        description=(
+            "One SHORT sentence (≤ 20 words) stating why this borough is proper venue — "
+            "e.g. 'Defendant's principal place of business is in Brooklyn.' "
+            "Do NOT copy governing-law or choice-of-law clauses here."
+        ),
+    )
 
 
 class Exhibit(BaseModel):

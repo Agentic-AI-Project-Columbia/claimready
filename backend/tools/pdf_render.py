@@ -434,7 +434,7 @@ def _render_claim(story, st, facts: CaseFacts):
         f"at 9% per annum from the date of breach pursuant to CPLR § 5004.",
 
         f"6.  <b>Venue</b> is proper in {facts.venue.borough or '[borough]'} County "
-        f"because {facts.venue.basis or '[basis for venue]'}.",
+        f"because {_short_scope(facts.venue.basis, max_len=120) if facts.venue.basis else '[basis for venue]'}.",
     ]
     for p in paragraphs:
         story.append(KeepTogether(Paragraph(p, st["body"])))
