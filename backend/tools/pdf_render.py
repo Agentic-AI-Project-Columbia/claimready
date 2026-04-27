@@ -425,10 +425,13 @@ def _render_claim(story, st, facts: CaseFacts):
 
     story.append(_section_header("STATEMENT OF CLAIM", st))
 
-    cd = facts.contract.date_formed.isoformat() if facts.contract.date_formed else "[date]"
-    pd = facts.performance.delivered_on.isoformat() if facts.performance.delivered_on else "[date]"
-    bd = facts.breach.date.isoformat() if facts.breach.date else "[date]"
-    scope_short = _short_scope(facts.contract.scope_of_work)
+    def _fmt_date(d) -> str:
+        return d.strftime("%B %d, %Y") if d else "[date]"
+
+    cd = _fmt_date(facts.contract.date_formed)
+    pd = _fmt_date(facts.performance.delivered_on)
+    bd = _fmt_date(facts.breach.date)
+    scope_short = _short_scope(facts.contract.scope_of_work, max_len=120)
 
     paragraphs = [
         f"1.  On or about <b>{cd}</b>, Plaintiff and Defendant entered into an agreement under "
@@ -451,8 +454,12 @@ def _render_claim(story, st, facts: CaseFacts):
         f"6.  <b>Venue</b> is proper in {facts.venue.borough or '[borough]'} County "
         f"because {_short_scope(facts.venue.basis, max_len=120) if facts.venue.basis else '[basis for venue]'}.",
     ]
+    # Tighter style for numbered paragraphs so WHEREFORE fits on the same page
+    claim_body = ParagraphStyle(
+        "claim_body", parent=st["body"], spaceAfter=5, leading=14,
+    )
     for p in paragraphs:
-        story.append(KeepTogether(Paragraph(p, st["body"])))
+        story.append(KeepTogether(Paragraph(p, claim_body)))
 
     # WHEREFORE in a shaded box
     total = facts.damages.total_demanded or facts.damages.principal
@@ -504,9 +511,9 @@ def _render_demand_letter(story, st, facts: CaseFacts):
         facts.breach.date.isoformat() if facts.breach.date else date.today().isoformat(),
     )
     today = date.today().strftime("%B %d, %Y")
-    bd_str = facts.breach.date.strftime("%B %d, %Y") if facts.breach.date else "[breach date]"
+    bd_str = facts.breach.date.strftime("%B %d, %Y") if facts.breach.date else None
     cd_str = facts.contract.date_formed.strftime("%B %d, %Y") if facts.contract.date_formed else "[contract date]"
-    scope_short = _short_scope(facts.contract.scope_of_work)
+    scope_short = _short_scope(facts.contract.scope_of_work, max_len=120)
 
     # Sender block
     story.append(Paragraph(
@@ -542,7 +549,7 @@ def _render_demand_letter(story, st, facts: CaseFacts):
         st["body_left"],
     ))
     story.append(Spacer(1, 0.05 * inch))
-    due_str = f", due {bd_str}" if bd_str != "[breach date]" else ""
+    due_str = f", due {bd_str}" if bd_str else ""
     story.append(Paragraph(
         f"<b>Re: Final Demand for Payment — {_money(dmg.total_demanded)} outstanding{due_str}</b>",
         st["body_left"],
@@ -560,20 +567,21 @@ def _render_demand_letter(story, st, facts: CaseFacts):
         f"On or about <b>{cd_str}</b>, we entered into an agreement under which I agreed to "
         f"provide: <b>{scope_short}</b>. "
         f"I performed all my obligations in full. Payment of <b>${dmg.principal:,.2f}</b> "
-        f"became due on <b>{bd_str}</b> and has not been received.",
+        f"became due on <b>{bd_str or '[due date]'}</b> and has not been received.",
         st["body"],
     ))
 
-    # Amount breakdown — plain black & white table (this is a formal legal letter)
-    story.append(Spacer(1, 0.05 * inch))
+    # Amount breakdown — plain black & white table (formal legal letter)
     r_style = ParagraphStyle("r", parent=st["body_left"], alignment=TA_RIGHT)
     r_bold  = ParagraphStyle("rb", parent=st["caption_bold"], alignment=TA_RIGHT)
+    interest_row_label = (
+        f"Pre-judgment interest at 9% per annum (CPLR § 5004)"
+        + (f", {dmg.days_elapsed} days from {bd_str}" if bd_str else "")
+    )
     amt_rows = [
         [Paragraph("Principal (contract price)", st["body_left"]),
          Paragraph(_money(dmg.principal), r_style)],
-        [Paragraph(f"Pre-judgment interest at 9% per annum (CPLR § 5004),\n"
-                   f"{dmg.days_elapsed} days from {bd_str}",
-                   st["body_left"]),
+        [Paragraph(interest_row_label, st["body_left"]),
          Paragraph(_money(dmg.interest_accrued), r_style)],
         [Paragraph("<b>TOTAL DUE</b>", st["caption_bold"]),
          Paragraph(f"<b>{_money(dmg.total_demanded)}</b>", r_bold)],
@@ -589,7 +597,12 @@ def _render_demand_letter(story, st, facts: CaseFacts):
         ("TOPPADDING",    (0, 0), (-1, -1), 5),
         ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
     ]))
-    story.append(KeepTogether(amt_t))
+    story.append(Spacer(1, 0.1 * inch))
+    story.append(KeepTogether([
+        Paragraph("AMOUNT CURRENTLY DUE", st["small_bold"]),
+        Spacer(1, 0.04 * inch),
+        amt_t,
+    ]))
     story.append(Spacer(1, 0.2 * inch))
 
     story.append(KeepTogether([
