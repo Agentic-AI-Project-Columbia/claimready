@@ -153,21 +153,35 @@ def _money(x: float) -> str:
     return f"${x:,.2f}"
 
 def _short_scope(text: str, max_len: int = 100) -> str:
-    """Return a concise version of scope_of_work for Re: lines and body paragraphs."""
+    """Return a concise version of a scope/basis field.
+
+    Strips boilerplate contract prefixes, takes the first sentence if short
+    enough, otherwise truncates at the last semicolon or comma before max_len
+    so the cut point looks intentional rather than mid-word.
+    """
     if not text:
         return "[services rendered]"
-    # Strip leading boilerplate phrases agents sometimes copy verbatim from contracts
-    for prefix in ("Designer agrees to create and deliver:", "Contractor shall provide:",
-                   "Plaintiff agrees to provide:", "Services include:"):
-        if text.strip().startswith(prefix):
+    for prefix in (
+        "Designer agrees to create and deliver:",
+        "Contractor shall provide:",
+        "Plaintiff agrees to provide:",
+        "Services include:",
+        "Scope of work:",
+    ):
+        if text.strip().lower().startswith(prefix.lower()):
             text = text.strip()[len(prefix):].strip()
             break
-    # Take the first sentence if it fits; otherwise truncate at a word boundary
+    # Use the first sentence if it fits
     first = text.split(".")[0].strip()
     if len(first) <= max_len:
         return first
-    cut = text[:max_len].rsplit(" ", 1)[0]
-    return cut + "…"
+    # Truncate at the last semicolon or comma before max_len for a clean break
+    chunk = text[:max_len]
+    for sep in (";", ","):
+        idx = chunk.rfind(sep)
+        if idx > max_len // 2:
+            return chunk[:idx].strip() + "…"
+    return chunk.rsplit(" ", 1)[0] + "…"
 
 def _full_addr(p) -> str:
     parts = [p.address]
@@ -421,7 +435,8 @@ def _render_claim(story, st, facts: CaseFacts):
         f"which Plaintiff would provide: <b>{scope_short}</b>.",
 
         f"2.  The agreed contract price was <b>{_money(facts.contract.agreed_amount)}</b>"
-        + (f", payable {facts.contract.payment_terms}." if facts.contract.payment_terms else "."),
+        + (f", payable {_short_scope(facts.contract.payment_terms, max_len=60)}."
+           if facts.contract.payment_terms else "."),
 
         f"3.  Plaintiff performed all obligations and delivered final work on or about "
         f"<b>{pd}</b>. Defendant accepted the deliverables without objection.",
@@ -576,15 +591,15 @@ def _render_demand_letter(story, st, facts: CaseFacts):
     story.append(KeepTogether(amt_t))
     story.append(Spacer(1, 0.2 * inch))
 
-    story.append(Paragraph(
-        f"If full payment is not received within <b>fourteen (14) days</b> of your receipt of "
-        f"this letter, I will commence an action against {def_name} in the NYC Civil Court, "
-        f"Small Claims Part, <b>{facts.venue.borough or '[borough]'} County</b>, without further "
-        f"notice. You will additionally be liable for costs and statutory interest accruing "
-        f"through the date of judgment.",
-        st["body"],
-    ))
     story.append(KeepTogether([
+        Paragraph(
+            f"If full payment is not received within <b>fourteen (14) days</b> of your receipt of "
+            f"this letter, I will commence an action against {def_name} in the NYC Civil Court, "
+            f"Small Claims Part, <b>{facts.venue.borough or '[borough]'} County</b>, without "
+            f"further notice. You will additionally be liable for costs and statutory interest "
+            f"accruing through the date of judgment.",
+            st["body"],
+        ),
         Paragraph(
             "I would prefer to resolve this matter without court intervention. Please contact me "
             "promptly if you wish to discuss payment or a settlement.",
