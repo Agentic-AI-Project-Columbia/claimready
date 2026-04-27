@@ -285,40 +285,82 @@ def _facts_from_intake(intake: Dict[str, Any]) -> CaseFacts:
 
 
 async def _forward_event(case_id: str, event: Any) -> None:
-    """Translate a Runner stream event into our wire-format JSON."""
-    try:
-        et = getattr(event, "type", None) or event.__class__.__name__
-        payload: Dict[str, Any] = {"type": et}
+    """Translate OpenAI Agents SDK stream events into frontend-friendly JSON.
 
+    SDK emits three kinds:
+      agent_updated_stream_event  — agent changed (handoff)
+      run_item_stream_event       — tool_called / tool_output / message_output
+      raw_response_event          — per-token deltas (skipped; too chatty)
+    """
+    try:
+        et = getattr(event, "type", None) or ""
+
+        # ── Skip per-token streaming noise ───────────────────────────────────
+        if et == "raw_response_event":
+            return
+
+        # ── Agent handoff ─────────────────────────────────────────────────────
+        if et == "agent_updated_stream_event":
+            new_agent = getattr(event, "new_agent", None)
+            name = getattr(new_agent, "name", None) if new_agent else None
+            if name:
+                await _emit(case_id, {"type": "handoff", "to_agent": name})
+            return
+
+        # ── Run item (tool call / tool result / message) ──────────────────────
+        if et == "run_item_stream_event":
+            item_name = getattr(event, "name", None)   # "tool_called", "tool_output", …
+            item      = getattr(event, "item", None)
+
+            # Agent name attached to this item
+            item_agent = getattr(item, "agent", None)
+            agent_str  = getattr(item_agent, "name", None) if item_agent else None
+
+            if item_name == "tool_called":
+                raw = getattr(item, "raw_item", None)
+                tool_name = getattr(raw, "name", "") if raw else ""
+                arguments = getattr(raw, "arguments", None) if raw else None
+                args: Any = None
+                if arguments:
+                    try:
+                        args = json.loads(arguments)
+                    except Exception:
+                        args = str(arguments)[:300]
+                payload: Dict[str, Any] = {
+                    "type": "tool_called",
+                    "tool_name": tool_name,
+                }
+                if args is not None:
+                    payload["args"] = args
+                if agent_str:
+                    payload["agent"] = agent_str
+                await _emit(case_id, payload)
+
+            elif item_name == "tool_output":
+                raw = getattr(item, "raw_item", None)
+                output = getattr(raw, "output", None) if raw else None
+                result = str(output)[:1200] if output else ""
+                payload = {
+                    "type": "tool_result",
+                    "tool_name": "",  # populated by call_id matching if needed
+                    "preview": result,
+                    "preview_truncated": len(str(output or "")) > 1200,
+                }
+                if agent_str:
+                    payload["agent"] = agent_str
+                await _emit(case_id, payload)
+
+            # Ignore message_output and other item types (not useful for UI)
+            return
+
+        # ── Anything else (e.g. legacy custom events) — forward as-is ─────────
+        payload = {"type": et}
         for attr in ("name", "agent", "from_agent", "to_agent", "tool_name"):
             v = getattr(event, attr, None)
             if v is not None:
                 payload[attr] = v if isinstance(v, (str, int, float, bool, dict, list)) else str(v)
 
-        # Tool call arguments — show full args so the UI can display what was searched
-        args = getattr(event, "args", None)
-        if args is not None:
-            try:
-                payload["args"] = args if isinstance(args, dict) else json.loads(str(args))
-            except Exception:
-                payload["args"] = str(args)[:300]
-
-        # Result / data preview — increased to 1200 chars for richer display
-        if hasattr(event, "data") and event.data is not None:
-            try:
-                raw = str(event.data)
-                payload["preview"] = raw[:1200]
-                payload["preview_truncated"] = len(raw) > 1200
-            except Exception:
-                pass
-
-        # Surface the current agent name wherever possible
-        item = getattr(event, "item", None)
-        if item is not None:
-            agent_name = getattr(item, "agent", None) or getattr(item, "name", None)
-            if agent_name and "agent" not in payload:
-                payload["agent"] = str(agent_name)
-
         await _emit(case_id, payload)
+
     except Exception as exc:
         log.warning("event forward failed: %s", exc)
