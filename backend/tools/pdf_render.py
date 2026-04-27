@@ -152,6 +152,23 @@ def _styles() -> dict:
 def _money(x: float) -> str:
     return f"${x:,.2f}"
 
+def _short_scope(text: str, max_len: int = 100) -> str:
+    """Return a concise version of scope_of_work for Re: lines and body paragraphs."""
+    if not text:
+        return "[services rendered]"
+    # Strip leading boilerplate phrases agents sometimes copy verbatim from contracts
+    for prefix in ("Designer agrees to create and deliver:", "Contractor shall provide:",
+                   "Plaintiff agrees to provide:", "Services include:"):
+        if text.strip().startswith(prefix):
+            text = text.strip()[len(prefix):].strip()
+            break
+    # Take the first sentence if it fits; otherwise truncate at a word boundary
+    first = text.split(".")[0].strip()
+    if len(first) <= max_len:
+        return first
+    cut = text[:max_len].rsplit(" ", 1)[0]
+    return cut + "…"
+
 def _full_addr(p) -> str:
     parts = [p.address]
     cs = " ".join(s for s in [p.city, p.state] if s)
@@ -397,10 +414,11 @@ def _render_claim(story, st, facts: CaseFacts):
     cd = facts.contract.date_formed.isoformat() if facts.contract.date_formed else "[date]"
     pd = facts.performance.delivered_on.isoformat() if facts.performance.delivered_on else "[date]"
     bd = facts.breach.date.isoformat() if facts.breach.date else "[date]"
+    scope_short = _short_scope(facts.contract.scope_of_work)
 
     paragraphs = [
         f"1.  On or about <b>{cd}</b>, Plaintiff and Defendant entered into an agreement under "
-        f"which Plaintiff would provide: <b>{facts.contract.scope_of_work or '[scope]'}</b>.",
+        f"which Plaintiff would provide: <b>{scope_short}</b>.",
 
         f"2.  The agreed contract price was <b>{_money(facts.contract.agreed_amount)}</b>"
         + (f", payable {facts.contract.payment_terms}." if facts.contract.payment_terms else "."),
@@ -441,11 +459,10 @@ def _render_claim(story, st, facts: CaseFacts):
         ("TOPPADDING",    (0, 0), (-1, -1), 8),
         ("BOTTOMPADDING", (0, 0), (-1, -1), 8),
     ]))
-    story.append(KeepTogether(wf_t))
-    story.append(Spacer(1, 0.3 * inch))
-
     today = date.today().isoformat()
     story.append(KeepTogether([
+        wf_t,
+        Spacer(1, 0.3 * inch),
         Paragraph(
             f"Dated: {facts.venue.borough or '[borough]'}, New York &nbsp;&nbsp; {today}",
             st["caption"],
@@ -474,6 +491,7 @@ def _render_demand_letter(story, st, facts: CaseFacts):
     today = date.today().strftime("%B %d, %Y")
     bd_str = facts.breach.date.strftime("%B %d, %Y") if facts.breach.date else "[breach date]"
     cd_str = facts.contract.date_formed.strftime("%B %d, %Y") if facts.contract.date_formed else "[contract date]"
+    scope_short = _short_scope(facts.contract.scope_of_work)
 
     # Sender block
     story.append(Paragraph(
@@ -510,7 +528,7 @@ def _render_demand_letter(story, st, facts: CaseFacts):
     ))
     story.append(Spacer(1, 0.05 * inch))
     story.append(Paragraph(
-        f"<b>Re: Final Demand for Payment — {facts.contract.scope_of_work or 'Outstanding Invoice'}</b>",
+        f"<b>Re: Final Demand for Payment — {scope_short}</b>",
         st["body_left"],
     ))
     story.append(_hr())
@@ -524,7 +542,7 @@ def _render_demand_letter(story, st, facts: CaseFacts):
     ))
     story.append(Paragraph(
         f"On or about <b>{cd_str}</b>, we entered into an agreement under which I agreed to "
-        f"provide: <b>{facts.contract.scope_of_work or '[scope]'}</b>. "
+        f"provide: <b>{scope_short}</b>. "
         f"I performed all my obligations in full. Payment of <b>${dmg.principal:,.2f}</b> "
         f"became due on <b>{bd_str}</b> and has not been received.",
         st["body"],
@@ -566,13 +584,13 @@ def _render_demand_letter(story, st, facts: CaseFacts):
         f"through the date of judgment.",
         st["body"],
     ))
-    story.append(Paragraph(
-        "I would prefer to resolve this matter without court intervention. Please contact me "
-        "promptly if you wish to discuss payment or a settlement.",
-        st["body"],
-    ))
-    story.append(Spacer(1, 0.3 * inch))
     story.append(KeepTogether([
+        Paragraph(
+            "I would prefer to resolve this matter without court intervention. Please contact me "
+            "promptly if you wish to discuss payment or a settlement.",
+            st["body"],
+        ),
+        Spacer(1, 0.3 * inch),
         Paragraph("Sincerely,", st["body_left"]),
         Spacer(1, 0.45 * inch),
         _hr(),
