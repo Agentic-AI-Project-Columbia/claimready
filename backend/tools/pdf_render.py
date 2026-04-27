@@ -634,33 +634,32 @@ def _render_exhibit_index(story, st, facts: CaseFacts):
         ))
         return
 
+    # Header row
     rows = [[
-        Paragraph("LABEL", st["small_bold"]),
+        Paragraph("EXHIBIT", st["small_bold"]),
         Paragraph("DESCRIPTION", st["small_bold"]),
-        Paragraph("FILE", st["small_bold"]),
     ]]
-    for i, ex in enumerate(facts.exhibits):
-        bg = CREAM if i % 2 == 0 else colors.white
+    for ex in facts.exhibits:
         rows.append([
             Paragraph(ex.label, st["caption_bold"]),
             Paragraph(ex.description, st["caption"]),
-            Paragraph(ex.file_ref or "—", st["small"]),
         ])
 
-    t = Table(rows, colWidths=[0.75 * inch, 4.25 * inch, 1.5 * inch])
+    t = Table(rows, colWidths=[1.1 * inch, 5.4 * inch])
     style = [
-        ("BACKGROUND",    (0, 0), (-1, 0), GREEN),
-        ("TEXTCOLOR",     (0, 0), (-1, 0), colors.white),
-        ("FONTNAME",      (0, 0), (-1, 0), "Helvetica-Bold"),
-        ("FONTSIZE",      (0, 0), (-1, 0), 8),
+        # Header row: light green background, green text
+        ("BACKGROUND",    (0, 0), (-1, 0), colors.HexColor("#DCE6DC")),
+        ("TEXTCOLOR",     (0, 0), (-1, 0), GREEN),
+        # Outer border + row separators only (no inner vertical grid)
         ("BOX",           (0, 0), (-1, -1), 0.5, RULE_GREY),
-        ("INNERGRID",     (0, 0), (-1, -1), 0.25, RULE_GREY),
+        ("LINEBELOW",     (0, 0), (-1, -2), 0.25, RULE_GREY),
         ("VALIGN",        (0, 0), (-1, -1), "TOP"),
-        ("LEFTPADDING",   (0, 0), (-1, -1), 7),
-        ("RIGHTPADDING",  (0, 0), (-1, -1), 7),
-        ("TOPPADDING",    (0, 0), (-1, -1), 5),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
+        ("LEFTPADDING",   (0, 0), (-1, -1), 8),
+        ("RIGHTPADDING",  (0, 0), (-1, -1), 8),
+        ("TOPPADDING",    (0, 0), (-1, -1), 6),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
     ]
+    # Alternating row backgrounds (skip header row 0)
     for i in range(1, len(rows)):
         if i % 2 == 0:
             style.append(("BACKGROUND", (0, i), (-1, i), CREAM))
