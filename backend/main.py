@@ -170,6 +170,45 @@ async def start_case(case_id: str, request: Request, intake: Dict[str, Any]):
     return {"case_id": case_id}
 
 
+@app.get("/api/dos/search")
+@limiter.limit("30/minute")
+async def dos_search(request: Request, q: str):
+    """Frontend typeahead for verifying defendants against the NY DOS registry.
+
+    Returns up to 5 matches with the canonical name and service-of-process
+    address so the wizard can guide the user toward the correct legal entity
+    before they commit to filing. This is a thin wrapper around the same
+    SODA endpoint that DefendantResolver uses; no agent invocation.
+    """
+    query = (q or "").strip()
+    if len(query) < 3:
+        return {"query": query, "matches": []}
+    try:
+        from tools.dos_lookup import _query_soda
+        rows = _query_soda(query, limit=5)
+    except Exception as exc:
+        log.warning("DOS search failed for %r: %s", query, exc)
+        raise HTTPException(503, f"NY DOS lookup is temporarily unavailable: {exc}")
+    matches = []
+    for r in rows:
+        addr_parts = [r.get("dos_process_address_1", "")]
+        city_state = " ".join(p for p in [r.get("dos_process_city", ""), r.get("dos_process_state", "")] if p)
+        if city_state:
+            addr_parts.append(city_state)
+        if r.get("dos_process_zip"):
+            addr_parts[-1] = f"{addr_parts[-1]} {r['dos_process_zip']}".strip()
+        matches.append({
+            "dos_id": str(r.get("dos_id", "")),
+            "current_entity_name": r.get("current_entity_name", ""),
+            "entity_type": r.get("entity_type", ""),
+            "county": r.get("county", ""),
+            "jurisdiction": r.get("jurisdiction", ""),
+            "service_address": ", ".join(p for p in addr_parts if p),
+            "registered_agent": r.get("registered_agent_name", "") or r.get("dos_process_name", ""),
+        })
+    return {"query": query, "matches": matches}
+
+
 @app.get("/api/demo/scenario")
 def demo_scenario():
     """Return the bundled grader-demo scenario (intake + evidence + blurb)."""

@@ -1,0 +1,42 @@
+══════════════════════════════════════════════════
+                    INVOICE
+══════════════════════════════════════════════════
+Invoice #:   2025-001
+Issued:      March 1, 2025
+Due date:    March 31, 2025  (Net 30)
+
+FROM
+  Jane Q. Doe Design
+  123 Smith Street
+  Brooklyn, NY 11201
+  jane@janedoedesign.example
+  (718) 555-0100
+
+BILL TO
+  Vanguard Marketing LLC — Accounts Payable
+  Attn: Derek Chan, Operations Manager
+  dchan@vanguardmarketing.example
+
+──────────────────────────────────────────────────
+  QTY  DESCRIPTION                              AMOUNT
+──────────────────────────────────────────────────
+   12  Original illustrations                $3,600.00
+        (Spring 2025 product-launch campaign)
+        Delivered: March 1, 2025
+
+    1  Brand-color guideline (1-page PDF)      $600.00
+        Delivered: March 1, 2025
+
+    1  Source files — Adobe Illustrator (.ai)  $600.00
+        (editable originals, all 12 illustrations)
+──────────────────────────────────────────────────
+                               TOTAL DUE:   $4,800.00
+══════════════════════════════════════════════════
+
+Payment instructions
+  ACH:   Routing 021000021 · Account 987654321
+  Check: Payable to 'Jane Q. Doe', mail to address above
+
+Please reference Invoice #2025-001 with your payment.
+Questions? Email jane@janedoedesign.example or call (718) 555-0100.
+══════════════════════════════════════════════════

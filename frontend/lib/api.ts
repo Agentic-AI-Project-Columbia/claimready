@@ -65,6 +65,23 @@ export async function uploadEvidence(
   return res.json();
 }
 
+export interface DosMatch {
+  dos_id: string;
+  current_entity_name: string;
+  entity_type: string;
+  county: string;
+  jurisdiction: string;
+  service_address: string;
+  registered_agent: string;
+}
+
+export async function searchDOS(query: string): Promise<{ query: string; matches: DosMatch[] }> {
+  const url = `${BACKEND_URL}/api/dos/search?q=${encodeURIComponent(query)}`;
+  const res = await fetch(url, { headers: API_KEY ? { 'X-API-Key': API_KEY } : {} });
+  if (!res.ok) throw new Error(`searchDOS failed: ${res.status}`);
+  return res.json();
+}
+
 export function caseEventsURL(caseId: string): string {
   // Choose ws/wss to match the http/https scheme of the backend.
   const url = new URL(BACKEND_URL);

@@ -10,7 +10,9 @@ export interface PartyIntake {
 
 export interface DefendantIntake extends PartyIntake {
   dos_entity_name?: string;
+  dos_id?: string;
   service_address?: string;
+  registered_agent?: string;
 }
 
 export interface ContractIntake {

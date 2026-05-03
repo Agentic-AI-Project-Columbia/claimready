@@ -19,6 +19,7 @@ import clsx from 'clsx';
 import { StepShell } from '@/components/StepShell';
 import { Field, FieldGrid } from '@/components/Field';
 import { EvidenceUpload, type PreviewFile } from '@/components/EvidenceUpload';
+import { DefendantLookup } from '@/components/DefendantLookup';
 import { AgentTimeline } from '@/components/AgentTimeline';
 import {
   BACKEND_URL,
@@ -221,15 +222,27 @@ export default function Page() {
             <Field
               label="Business name (as you know it)"
               required
-              hint="The agent will check the canonical name with NY State."
+              hint="As you type, we'll check NY State live and confirm the legal entity."
               span="full"
             >
-              <input
+              <DefendantLookup
                 value={intake.defendant.name}
-                onChange={(e) =>
-                  setIntake((p) => ({ ...p, defendant: { ...p.defendant, name: e.target.value } }))
+                onChange={(name) =>
+                  setIntake((p) => ({ ...p, defendant: { ...p.defendant, name } }))
                 }
-                placeholder="Vanguard Marketing LLC"
+                onPick={(m) =>
+                  setIntake((p) => ({
+                    ...p,
+                    defendant: {
+                      ...p.defendant,
+                      name: m.current_entity_name,
+                      dos_entity_name: m.current_entity_name,
+                      dos_id: m.dos_id,
+                      service_address: m.service_address,
+                      registered_agent: m.registered_agent,
+                    },
+                  }))
+                }
               />
             </Field>
           </FieldGrid>
@@ -407,6 +420,7 @@ export default function Page() {
           onBack={back}
           onNext={next}
         >
+          <SampleEvidencePack />
           <EvidenceUpload files={files} onChange={setFiles} />
         </StepShell>
       )}
@@ -623,6 +637,51 @@ function FeatureCard({ icon, title, body }: { icon: React.ReactNode; title: stri
       </div>
       <p className="font-serif text-lg text-ink-900 mb-2">{title}</p>
       <p className="text-sm text-ink-900/70 leading-relaxed">{body}</p>
+    </div>
+  );
+}
+
+// --------------------------------------------------------------------------- //
+//                       Sample evidence pack (Step 6)                         //
+// --------------------------------------------------------------------------- //
+
+const SAMPLE_EVIDENCE = [
+  { file: '01_services_agreement.txt', label: 'Services agreement', desc: 'Signed contract with scope, fee, payment terms' },
+  { file: '02_invoice_2025_001.txt',   label: 'Invoice',            desc: 'Itemised line items with totals and due date' },
+  { file: '03_email_thread.eml',       label: 'Email thread',       desc: 'Delivery confirmation + follow-ups' },
+  { file: '04_followup_note.txt',      label: 'Follow-up log',      desc: 'Phone call attempts and dates' },
+];
+
+function SampleEvidencePack() {
+  return (
+    <div className="mb-5 rounded-xl border border-ochre-400/30 bg-ochre-400/5 p-4">
+      <div className="flex items-start gap-3">
+        <div className="hidden sm:flex w-8 h-8 rounded-lg bg-ochre-400 text-ink-900 items-center justify-center shrink-0">
+          <Download size={16} />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-[11px] uppercase tracking-widest text-ochre-600 font-semibold mb-0.5">
+            Want to try the wizard end-to-end?
+          </p>
+          <p className="text-sm text-ink-900 mb-2">
+            Download our four sample documents and upload them below — same files the
+            one-click demo uses, formatted to show you what good evidence looks like.
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {SAMPLE_EVIDENCE.map((s) => (
+              <a
+                key={s.file}
+                href={`/sample-evidence/${s.file}`}
+                download
+                title={s.desc}
+                className="text-xs font-medium px-3 py-1.5 rounded-lg bg-white border border-ochre-400/40 text-ink-900 hover:border-ochre-500 hover:bg-ochre-400/10 transition inline-flex items-center gap-1.5"
+              >
+                <Download size={12} /> {s.label}
+              </a>
+            ))}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
