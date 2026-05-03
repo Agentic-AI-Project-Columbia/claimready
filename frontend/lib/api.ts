@@ -94,6 +94,15 @@ export function pdfURL(caseId: string): string {
   return `${BACKEND_URL}/api/case/${caseId}/pdf`;
 }
 
+export async function getCaseFacts(caseId: string): Promise<{
+  status: string;
+  facts: Record<string, any> | null;
+}> {
+  const res = await fetch(`${BACKEND_URL}/api/case/${caseId}/facts`);
+  if (!res.ok) throw new Error(`getCaseFacts failed: ${res.status}`);
+  return res.json();
+}
+
 export interface DemoScenario {
   title: string;
   blurb: string;

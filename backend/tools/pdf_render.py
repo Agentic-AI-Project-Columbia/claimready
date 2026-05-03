@@ -337,6 +337,26 @@ def _render_cover(story, st, facts: CaseFacts):
     story.append(amt_t)
     story.append(Spacer(1, 0.3 * inch))
 
+    disclaimer = Table(
+        [[Paragraph(
+            "<b>Important:</b> ClaimReady generates documents and educational filing guidance "
+            "from public statutes and court forms. It is not a law firm and does not provide "
+            "legal advice. For a complex case, consult a licensed attorney.",
+            st["small"],
+        )]],
+        colWidths=[W],
+    )
+    disclaimer.setStyle(TableStyle([
+        ("BACKGROUND",    (0, 0), (-1, -1), colors.HexColor("#F7F7F2")),
+        ("BOX",           (0, 0), (-1, -1), 0.5, RULE_GREY),
+        ("LEFTPADDING",   (0, 0), (-1, -1), 8),
+        ("RIGHTPADDING",  (0, 0), (-1, -1), 8),
+        ("TOPPADDING",    (0, 0), (-1, -1), 6),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
+    ]))
+    story.append(disclaimer)
+    story.append(Spacer(1, 0.25 * inch))
+
     # ── Filing steps ──────────────────────────────────────────────────────────
     story.append(_section_header("HOW TO FILE", st))
 

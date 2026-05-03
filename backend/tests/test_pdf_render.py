@@ -104,3 +104,9 @@ class TestPdfContent:
         text = _extract_text(data)
         assert "ClaimReady" in text
         assert "QuietCase" not in text
+
+    def test_disclaimer_says_not_legal_advice(self, fully_populated_facts):
+        data = render_packet(fully_populated_facts)
+        text = _extract_text(data)
+        assert "does not provide legal advice" in text
+        assert "not a law firm" in text

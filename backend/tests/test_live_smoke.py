@@ -33,6 +33,7 @@ def test_live_demo_and_upload_flows(tmp_path: Path):
 
     assert {flow.name for flow in report.flows} == {
         "demo_pdf",
+        "demo_event_stream",
         "prepare_upload_start_pdf",
     }
     for flow in report.flows:

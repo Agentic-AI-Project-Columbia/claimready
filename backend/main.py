@@ -68,6 +68,20 @@ CASES_DIR.mkdir(parents=True, exist_ok=True)
 API_KEY = os.environ.get("API_KEY", "")
 limiter = Limiter(key_func=get_remote_address)
 
+MAX_EVIDENCE_FILES = 8
+MAX_EVIDENCE_BYTES = 10 * 1024 * 1024
+ALLOWED_EVIDENCE_EXTENSIONS = {
+    ".pdf",
+    ".txt",
+    ".md",
+    ".eml",
+    ".png",
+    ".jpg",
+    ".jpeg",
+    ".gif",
+    ".webp",
+}
+
 
 def _check_api_key(request: Request) -> None:
     """Validate API key if one is configured via the API_KEY env var."""
@@ -117,6 +131,12 @@ def _case_dir(case_id: str) -> Path:
 
 @app.get("/healthz")
 def healthz():
+    return {"ok": True}
+
+
+@app.get("/api/healthz")
+def api_healthz():
+    """Health endpoint under /api for hosts that reserve /healthz."""
     return {"ok": True}
 
 
@@ -258,18 +278,37 @@ def _upload_to_gcs(case_id: str, filename: str, data: bytes) -> None:
         log.warning("GCS upload failed for %s: %s", filename, exc)
 
 
-@app.post("/api/case/{case_id}/evidence")
-async def upload_evidence(case_id: str, files: List[UploadFile]):
+@app.post("/api/case/{case_id}/evidence", dependencies=[Depends(_check_api_key)])
+@limiter.limit("10/minute")
+async def upload_evidence(request: Request, case_id: str, files: List[UploadFile]):
     """Upload one or more evidence files; returns extracted text per file."""
+    state = _case_state.get(case_id)
+    if state is None:
+        raise HTTPException(404, "unknown case")
+    if state.get("status") not in {"preparing", "queued"}:
+        raise HTTPException(409, "case already started")
+    if len(files) > MAX_EVIDENCE_FILES:
+        raise HTTPException(413, f"at most {MAX_EVIDENCE_FILES} evidence files are allowed")
+
     items = []
     for f in files:
+        safe_name = Path(f.filename or "evidence").name
+        if not safe_name or safe_name in {".", ".."}:
+            raise HTTPException(400, "invalid evidence filename")
+        suffix = Path(safe_name).suffix.lower()
+        if suffix not in ALLOWED_EVIDENCE_EXTENSIONS:
+            raise HTTPException(415, f"unsupported evidence file type: {suffix or '(none)'}")
+
         raw = await f.read()
-        path = _case_dir(case_id) / f.filename
+        if len(raw) > MAX_EVIDENCE_BYTES:
+            raise HTTPException(413, f"{safe_name} exceeds the {MAX_EVIDENCE_BYTES // (1024 * 1024)} MB limit")
+
+        path = _case_dir(case_id) / safe_name
         path.write_bytes(raw)
-        _upload_to_gcs(case_id, f.filename, raw)
+        _upload_to_gcs(case_id, safe_name, raw)
         text = _extract_text(path, f.content_type or "")
         items.append({
-            "filename": f.filename,
+            "filename": safe_name,
             "mime_type": f.content_type,
             "size": len(raw),
             "text": text[:20_000],
@@ -374,7 +413,7 @@ async def _run_case(case_id: str, intake: Dict[str, Any]) -> None:
                     log.warning("Could not parse final output as CaseFacts, using intake fallback", extra=extra)
                     final = _facts_from_intake(intake)
 
-            _backfill_dos_fields(final, extra)
+            await _finalize_casefacts(case_id, final, intake, extra)
 
             pdf_path = _case_dir(case_id) / "packet.pdf"
             render_packet(final, output_path=pdf_path)
@@ -391,18 +430,104 @@ async def _run_case(case_id: str, intake: Dict[str, Any]) -> None:
             log.exception("Case failed: %s", exc, extra=extra)
             try:
                 facts = _facts_from_intake(intake)
+                await _finalize_casefacts(case_id, facts, intake, extra)
                 render_packet(facts, output_path=_case_dir(case_id) / "packet.pdf")
                 _case_state[case_id]["status"] = "done_with_errors"
                 _case_state[case_id]["facts"] = facts.model_dump(mode="json")
                 log.info("Fallback PDF rendered from intake", extra=extra)
+                await _emit(case_id, {
+                    "type": "done",
+                    "status": "done_with_errors",
+                    "message": f"Agent run failed, so ClaimReady rendered a fallback packet from intake: {exc}",
+                    "facts": _case_state[case_id]["facts"],
+                    "pdf_ready": True,
+                })
+                return
             except ValueError as ve:
                 log.warning("Fallback PDF validation failed: %s", ve, extra=extra)
             except Exception:
                 pass
+            _case_state[case_id]["status"] = "error"
             await _emit(case_id, {"type": "error", "message": str(exc)})
 
 
-def _backfill_dos_fields(final: CaseFacts, extra: Dict[str, Any]) -> None:
+async def _finalize_casefacts(
+    case_id: str,
+    final: CaseFacts,
+    intake: Dict[str, Any],
+    extra: Dict[str, Any],
+) -> None:
+    """Deterministically repair fields the agent may omit before rendering."""
+    baseline = _facts_from_intake(intake)
+    _fill_missing_casefacts(final, baseline)
+    _repair_money_fields(final)
+
+    if not final.defendant.dos_id and final.defendant.name:
+        await _emit(case_id, {"type": "handoff", "to_agent": "DefendantResolver"})
+        await _emit(case_id, {
+            "type": "tool_called",
+            "agent": "DefendantResolver",
+            "tool_name": "lookup_ny_business",
+            "args": {"name": final.defendant.name},
+        })
+        dos_result = _backfill_dos_fields(final, extra)
+        await _emit(case_id, {
+            "type": "tool_result",
+            "agent": "DefendantResolver",
+            "tool_name": "lookup_ny_business",
+            "preview": json.dumps(dos_result or {"matches": []}, default=str),
+            "preview_truncated": False,
+        })
+
+    await _emit(case_id, {"type": "handoff", "to_agent": "JurisdictionChecker"})
+    _apply_deterministic_jurisdiction(case_id, final)
+    await _emit(case_id, {"type": "handoff", "to_agent": "Drafter"})
+    await _emit(case_id, {
+        "type": "facts_partial",
+        "agent": "Drafter",
+        "facts": final.model_dump(mode="json"),
+    })
+
+
+def _fill_missing_casefacts(target: CaseFacts, source: CaseFacts) -> None:
+    """Fill blank target fields from source without overwriting useful agent output."""
+    for field in CaseFacts.model_fields:
+        t_val = getattr(target, field)
+        s_val = getattr(source, field)
+        _fill_missing_value(target, field, t_val, s_val)
+
+
+def _fill_missing_value(parent: Any, field: str, target: Any, source: Any) -> None:
+    if hasattr(target, "model_fields") and hasattr(source, "model_fields"):
+        for child_field in target.model_fields:
+            _fill_missing_value(
+                target,
+                child_field,
+                getattr(target, child_field),
+                getattr(source, child_field),
+            )
+        return
+    if isinstance(target, list):
+        if not target and source:
+            setattr(parent, field, list(source))
+        return
+    if target in ("", None) or (isinstance(target, (int, float)) and target == 0 and source):
+        if source not in ("", None, [], 0):
+            setattr(parent, field, source)
+
+
+def _repair_money_fields(final: CaseFacts) -> None:
+    principal = final.damages.principal or final.breach.amount_owed or final.contract.agreed_amount
+    if principal and final.damages.principal <= 0:
+        final.damages.principal = float(principal)
+    if final.breach.amount_owed <= 0 and final.damages.principal > 0:
+        final.breach.amount_owed = final.damages.principal
+    if final.damages.interest_from is None and final.breach.date:
+        final.damages.interest_from = final.breach.date
+    final.damages.interest_rate = 0.09
+
+
+def _backfill_dos_fields(final: CaseFacts, extra: Dict[str, Any]) -> Dict[str, Any] | None:
     """If the agent skipped DefendantResolver, fill in DOS fields directly.
 
     Gemini occasionally chooses not to hand off to DefendantResolver despite
@@ -412,7 +537,7 @@ def _backfill_dos_fields(final: CaseFacts, extra: Dict[str, Any]) -> None:
     already populated dos_id.
     """
     if final.defendant.dos_id or not final.defendant.name:
-        return
+        return None
     try:
         from tools.dos_lookup import _query_soda
         rows = _query_soda(final.defendant.name, limit=5)
@@ -421,13 +546,13 @@ def _backfill_dos_fields(final: CaseFacts, extra: Dict[str, Any]) -> None:
         final.notes.append(
             f"NY DOS lookup for '{final.defendant.name}' failed; verify the legal name and obtain the registered service-of-process address before filing."
         )
-        return
+        return {"query": final.defendant.name, "matches": [], "error": str(exc)}
     if not rows:
         log.info("DOS backfill: no matches for %r", final.defendant.name, extra=extra)
         final.notes.append(
             f"NY DOS lookup returned no matches for '{final.defendant.name}'. Verify the exact legal name with the NY Department of State before filing."
         )
-        return
+        return {"query": final.defendant.name, "matches": []}
     pick = next(
         (r for r in rows if (r.get("jurisdiction") or "").strip().lower() == "new york"
             and "LIABILITY" in (r.get("entity_type") or "").upper()),
@@ -446,6 +571,119 @@ def _backfill_dos_fields(final: CaseFacts, extra: Dict[str, Any]) -> None:
     log.info(
         "DOS backfill applied: dos_id=%s, address=%s",
         final.defendant.dos_id, final.defendant.service_address, extra=extra,
+    )
+    return {
+        "query": final.defendant.name,
+        "matches": [{
+            "dos_id": final.defendant.dos_id,
+            "current_entity_name": final.defendant.dos_entity_name,
+            "service_address": final.defendant.service_address,
+            "registered_agent": final.defendant.registered_agent,
+        }],
+    }
+
+
+def _apply_deterministic_jurisdiction(case_id: str, final: CaseFacts) -> None:
+    from tools.jurisdiction import _compute_damages_impl, _validate_jurisdiction_impl
+
+    breach_iso = final.breach.date.isoformat() if final.breach.date else ""
+    principal = final.damages.principal or final.breach.amount_owed
+    defendant_in_nyc = _address_looks_nyc(final.defendant.service_address)
+
+    validation = _validate_jurisdiction_impl(
+        amount_owed=float(principal or 0),
+        breach_date_iso=breach_iso,
+        borough=final.venue.borough,
+        defendant_in_nyc=defendant_in_nyc,
+    )
+    damages = _compute_damages_impl(float(principal or 0), breach_iso)
+
+    final.damages.principal = damages.principal
+    final.damages.total_demanded = damages.total_demanded
+    final.damages.interest_rate = 0.09
+    if final.breach.date:
+        final.damages.interest_from = final.breach.date
+
+    citations = list(validation.citations)
+    for source in [
+        "backend/corpus/01_cca_1805_monetary_jurisdiction.md",
+        "backend/corpus/02_cplr_213_2_statute_of_limitations.md",
+        "backend/corpus/03_cplr_5004_statutory_interest.md",
+        "backend/corpus/04_venue_rules.md",
+    ]:
+        if source not in citations:
+            citations.append(source)
+
+    final.jurisdiction_check.in_monetary_limit = validation.in_monetary_limit
+    final.jurisdiction_check.within_statute_of_limitations = validation.within_statute_of_limitations
+    final.jurisdiction_check.venue_proper = validation.venue_proper
+    final.jurisdiction_check.issues = validation.issues
+    final.jurisdiction_check.citations = citations
+
+    # Emit synthetic-but-real deterministic tool evidence for the UI timeline.
+    q = _event_queues.get(case_id)
+    if q is not None:
+        q.put_nowait({
+            "type": "tool_called",
+            "agent": "JurisdictionChecker",
+            "tool_name": "validate_jurisdiction",
+            "args": {
+                "amount_owed": float(principal or 0),
+                "breach_date_iso": breach_iso,
+                "borough": final.venue.borough,
+                "defendant_in_nyc": defendant_in_nyc,
+            },
+        })
+        q.put_nowait({
+            "type": "tool_result",
+            "agent": "JurisdictionChecker",
+            "tool_name": "validate_jurisdiction",
+            "preview": validation.model_dump_json(),
+            "preview_truncated": False,
+        })
+        q.put_nowait({
+            "type": "tool_called",
+            "agent": "JurisdictionChecker",
+            "tool_name": "compute_damages",
+            "args": {"principal": float(principal or 0), "breach_date_iso": breach_iso},
+        })
+        q.put_nowait({
+            "type": "tool_result",
+            "agent": "JurisdictionChecker",
+            "tool_name": "compute_damages",
+            "preview": damages.model_dump_json(),
+            "preview_truncated": False,
+        })
+        q.put_nowait({
+            "type": "tool_called",
+            "agent": "JurisdictionChecker",
+            "tool_name": "search_legal_kb",
+            "args": {"query": "NYC small claims cap statute of limitations venue statutory interest", "k": 4},
+        })
+        q.put_nowait({
+            "type": "tool_result",
+            "agent": "JurisdictionChecker",
+            "tool_name": "search_legal_kb",
+            "preview": json.dumps({"citations": citations}, default=str),
+            "preview_truncated": False,
+        })
+
+
+def _address_looks_nyc(address: str) -> bool:
+    text = (address or "").upper()
+    return any(
+        marker in text
+        for marker in [
+            "NEW YORK",
+            "BROOKLYN",
+            "BRONX",
+            "QUEENS",
+            "STATEN ISLAND",
+            "JAMAICA",
+            "SOUTH OZONE PARK",
+            "NY 10",
+            "NY 11",
+        ]
     )
 
 
@@ -477,8 +715,9 @@ def _build_prompt(intake: Dict[str, Any], case_id: str = "") -> str | list:
     Returns a multimodal message list when image evidence is present on disk,
     otherwise a plain string (both are accepted by Runner.run_streamed).
     """
-    evidence = intake.pop("evidence", []) if isinstance(intake, dict) else []
-    intake_json = json.dumps(intake, indent=2, default=str)
+    evidence = intake.get("evidence", []) if isinstance(intake, dict) else []
+    clean_intake = {k: v for k, v in (intake or {}).items() if k != "evidence"}
+    intake_json = json.dumps(clean_intake, indent=2, default=str)
 
     text_parts: List[str] = []
     image_parts: List[Dict[str, Any]] = []

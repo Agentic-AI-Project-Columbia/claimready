@@ -402,6 +402,23 @@ export function AgentTimeline({ events, isRunning }: Props) {
         ))}
       </div>
 
+      {/* Event feed */}
+      <div className="rounded-xl bg-ink-900 border border-ink-800 shadow-inner overflow-hidden">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-ink-800">
+          <p className="text-[10px] uppercase tracking-widest font-bold text-ink-200">
+            Live event feed
+          </p>
+          <span className="text-[10px] text-ink-400">{feed.length} events</span>
+        </div>
+        <div ref={feedRef} className="max-h-72 overflow-auto px-4 py-3 space-y-2">
+          {feed.length > 0 ? (
+            feed.map(entry => <FeedItem key={entry.id} entry={entry} />)
+          ) : (
+            <p className="text-xs text-ink-400">Waiting for the first agent event…</p>
+          )}
+        </div>
+      </div>
+
     </div>
   );
 }

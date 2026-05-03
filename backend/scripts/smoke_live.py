@@ -7,6 +7,7 @@ traffic. Keep it separate from unit tests.
 from __future__ import annotations
 
 import argparse
+import asyncio
 import json
 import os
 import sys
@@ -17,6 +18,7 @@ from pathlib import Path
 from typing import Any
 
 import httpx
+import websockets
 
 
 DONE_STATUSES = {"done", "done_with_errors"}
@@ -35,6 +37,9 @@ class FlowResult:
     pdf_bytes: int
     facts_keys: list[str]
     pdf_path: str | None = None
+    event_count: int | None = None
+    handoffs: list[str] | None = None
+    tools: list[str] | None = None
 
 
 @dataclass(frozen=True)
@@ -53,6 +58,7 @@ def run_smoke(
     output_dir: Path | None = None,
     run_demo_flow: bool = True,
     run_upload_flow: bool = True,
+    run_event_flow: bool = True,
 ) -> SmokeReport:
     """Run the opt-in live smoke checks and return measured results."""
     base_url = _normalize_base_url(base_url)
@@ -68,6 +74,16 @@ def run_smoke(
                     api_key=api_key,
                     timeout_seconds=timeout_seconds,
                     poll_interval_seconds=poll_interval_seconds,
+                    output_dir=output_dir,
+                )
+            )
+        if run_event_flow:
+            flows.append(
+                _run_demo_event_stream_flow(
+                    client=client,
+                    base_url=base_url,
+                    api_key=api_key,
+                    timeout_seconds=timeout_seconds,
                     output_dir=output_dir,
                 )
             )
@@ -87,6 +103,109 @@ def run_smoke(
         raise SmokeFailure("No smoke flows selected.")
 
     return SmokeReport(base_url=base_url, timeout_seconds=timeout_seconds, flows=flows)
+
+
+def _run_demo_event_stream_flow(
+    *,
+    client: httpx.Client,
+    base_url: str,
+    api_key: str,
+    timeout_seconds: float,
+    output_dir: Path | None,
+) -> FlowResult:
+    started = time.perf_counter()
+    response = client.post(
+        f"{base_url}/api/demo/run",
+        headers=_auth_headers(api_key),
+        content=b"",
+    )
+    _assert_success(response, "POST /api/demo/run for event stream")
+    case_id = _case_id_from(response.json(), "demo event stream")
+
+    events = asyncio.run(
+        _collect_event_stream(
+            url=_events_url(base_url, case_id),
+            timeout_seconds=timeout_seconds,
+        )
+    )
+    done_event = next((e for e in events if e.get("type") == "done"), None)
+    if done_event is None:
+        raise SmokeFailure("Event stream ended without a done event.")
+    if done_event.get("pdf_ready") is not True:
+        raise SmokeFailure("Done event did not report pdf_ready=true.")
+
+    tools = [str(e.get("tool_name")) for e in events if e.get("type") == "tool_called"]
+    required_tools = {
+        "lookup_ny_business",
+        "validate_jurisdiction",
+        "compute_damages",
+        "search_legal_kb",
+    }
+    missing_tools = sorted(required_tools - set(tools))
+    if missing_tools:
+        raise SmokeFailure(f"Event stream missing tool calls: {missing_tools}")
+
+    facts_payload = {
+        "status": done_event.get("status") or "done",
+        "facts": done_event.get("facts") or {},
+    }
+    case_facts = facts_payload["facts"]
+    defendant = case_facts.get("defendant") if isinstance(case_facts, dict) else {}
+    jurisdiction = case_facts.get("jurisdiction_check") if isinstance(case_facts, dict) else {}
+    if not defendant.get("dos_id") or not defendant.get("service_address"):
+        raise SmokeFailure("Done facts are missing DOS id or service address.")
+    if not all(
+        jurisdiction.get(k) is True
+        for k in ["in_monetary_limit", "within_statute_of_limitations", "venue_proper"]
+    ):
+        raise SmokeFailure(f"Jurisdiction booleans were not all true: {jurisdiction}")
+    if not jurisdiction.get("citations"):
+        raise SmokeFailure("Jurisdiction citations are empty.")
+
+    pdf = _download_pdf(client, base_url, api_key, case_id)
+    elapsed = time.perf_counter() - started
+    _assert_elapsed("demo_event_stream", elapsed, timeout_seconds)
+    pdf_path = _write_pdf(output_dir, "events", case_id, pdf)
+    result = _flow_result(
+        name="demo_event_stream",
+        case_id=case_id,
+        facts=facts_payload,
+        elapsed_seconds=elapsed,
+        pdf=pdf,
+        pdf_path=pdf_path,
+    )
+    data = asdict(result)
+    data.update({
+        "event_count": len(events),
+        "handoffs": [
+            str(e.get("to_agent") or e.get("name"))
+            for e in events
+            if e.get("type") in {"agent_started", "handoff"}
+        ],
+        "tools": tools,
+    })
+    return FlowResult(**data)
+
+
+async def _collect_event_stream(*, url: str, timeout_seconds: float) -> list[dict[str, Any]]:
+    events: list[dict[str, Any]] = []
+    deadline = time.perf_counter() + timeout_seconds
+    try:
+        async with websockets.connect(url, open_timeout=20, ping_timeout=20) as ws:
+            while time.perf_counter() < deadline:
+                remaining = max(0.1, deadline - time.perf_counter())
+                raw = await asyncio.wait_for(ws.recv(), timeout=remaining)
+                event = json.loads(raw)
+                events.append(event)
+                if event.get("type") == "error":
+                    raise SmokeFailure(f"Event stream emitted error: {event.get('message')}")
+                if event.get("type") == "done":
+                    return events
+    except SmokeFailure:
+        raise
+    except Exception as exc:
+        raise SmokeFailure(f"Event stream failed before done: {type(exc).__name__}: {exc}") from exc
+    raise SmokeFailure(f"Event stream did not finish within {timeout_seconds:.1f}s.")
 
 
 def _run_demo_flow(
@@ -459,6 +578,12 @@ def _normalize_base_url(base_url: str) -> str:
     return normalized
 
 
+def _events_url(base_url: str, case_id: str) -> str:
+    if base_url.startswith("https://"):
+        return f"wss://{base_url.removeprefix('https://')}/api/case/{case_id}/events"
+    return f"ws://{base_url.removeprefix('http://')}/api/case/{case_id}/events"
+
+
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
@@ -501,6 +626,11 @@ def _parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Skip prepare/evidence/start upload flow.",
     )
+    parser.add_argument(
+        "--skip-events",
+        action="store_true",
+        help="Skip WebSocket event-stream assertions.",
+    )
     return parser
 
 
@@ -515,6 +645,7 @@ def main(argv: list[str] | None = None) -> int:
             output_dir=args.output_dir,
             run_demo_flow=not args.skip_demo,
             run_upload_flow=not args.skip_upload,
+            run_event_flow=not args.skip_events,
         )
     except (SmokeFailure, httpx.HTTPError) as exc:
         print(f"SMOKE FAILED: {exc}", file=sys.stderr)

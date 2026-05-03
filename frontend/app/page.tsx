@@ -25,6 +25,7 @@ import {
   BACKEND_URL,
   caseEventsURL,
   createCase,
+  getCaseFacts,
   pdfURL,
   prepareCase,
   runDemo,
@@ -50,19 +51,98 @@ export default function Page() {
   const back = () => setStep((s) => Math.max(s - 1, 1));
 
   function attachWebSocket(case_id: string) {
+    let settled = false;
+    let polling = false;
+
+    async function pollUntilReady(reason: string) {
+      if (polling || settled) return;
+      polling = true;
+      const deadline = Date.now() + 150_000;
+      while (Date.now() < deadline && !settled) {
+        try {
+          const data = await getCaseFacts(case_id);
+          if (data.status === 'done' || data.status === 'done_with_errors') {
+            settled = true;
+            setEvents((prev) => [
+              ...prev,
+              {
+                type: 'done',
+                facts: data.facts,
+                pdf_ready: true,
+                message:
+                  data.status === 'done_with_errors'
+                    ? `Recovered after ${reason}; fallback packet is ready.`
+                    : `Recovered after ${reason}; packet is ready.`,
+              },
+            ]);
+            setDone(true);
+            setError(null);
+            return;
+          }
+          if (data.status === 'error') {
+            settled = true;
+            setDone(true);
+            setError('The backend could not finish this packet.');
+            return;
+          }
+        } catch {
+          // Keep polling; Cloud Run can briefly route before state is visible.
+        }
+        await new Promise((resolve) => setTimeout(resolve, 3000));
+      }
+      if (!settled) {
+        setDone(true);
+        setError('Lost connection before the packet was ready. Try again.');
+      }
+    }
+
     const ws = new WebSocket(caseEventsURL(case_id));
     ws.onmessage = (m) => {
       try {
         const payload = JSON.parse(m.data) as AgentEvent;
         setEvents((prev) => [...prev, payload]);
-        if (payload.type === 'done') setDone(true);
-        if (payload.type === 'error') {
-          setError(payload.message ?? 'Unknown error');
+        if (payload.type === 'done') {
+          settled = true;
           setDone(true);
+          setError(null);
+        }
+        if (payload.type === 'error') {
+          setEvents((prev) => [
+            ...prev,
+            {
+              type: 'handoff',
+              to_agent: 'Recovery Poller',
+              message: 'Checking whether a fallback packet is available.',
+            },
+          ]);
+          pollUntilReady('agent error');
         }
       } catch {}
     };
-    ws.onerror = () => setError('Lost connection to backend');
+    ws.onerror = () => {
+      setEvents((prev) => [
+        ...prev,
+        {
+          type: 'handoff',
+          to_agent: 'Recovery Poller',
+          message: 'WebSocket error; checking packet status.',
+        },
+      ]);
+      pollUntilReady('WebSocket error');
+    };
+    ws.onclose = () => {
+      if (!settled) {
+        setEvents((prev) => [
+          ...prev,
+          {
+            type: 'handoff',
+            to_agent: 'Recovery Poller',
+            message: 'WebSocket closed; checking packet status.',
+          },
+        ]);
+        pollUntilReady('WebSocket close');
+      }
+    };
   }
 
   async function startDemoRun() {

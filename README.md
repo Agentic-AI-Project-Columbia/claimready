@@ -212,6 +212,7 @@ Live smoke checks against a deployed or local backend:
 ```bash
 cd backend
 python scripts/smoke_live.py --base-url https://claimready-backend-7pj7nolpla-ue.a.run.app --timeout 90
+# Use --skip-events only when debugging REST/PDF readiness without WebSocket assertions.
 
 # or through pytest
 $env:CLAIMREADY_SMOKE_BASE_URL = "https://claimready-backend-7pj7nolpla-ue.a.run.app"
@@ -249,7 +250,7 @@ This builds both Docker images, deploys the backend (2 CPU, 2 GiB, 600s timeout)
 | `GET` | `/api/case/{id}/facts` | Get final CaseFacts JSON |
 | `POST` | `/api/demo/run` | One-click demo (bundled scenario) |
 | `GET` | `/api/demo/scenario` | Get demo scenario metadata |
-| `GET` | `/healthz` | Health check |
+| `GET` | `/api/healthz` | Health check |
 
 ---
 

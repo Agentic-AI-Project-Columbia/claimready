@@ -47,6 +47,7 @@ steps:
     - --memory=2Gi
     - --timeout=600
     - --concurrency=8
+    - --max-instances=1
     - --port=8080
     - --set-env-vars=GCP_PROJECT_ID=$PROJECT_ID,GCP_REGION=${_REGION},AGENT_MODEL=vertex_ai/gemini-2.5-flash
   waitFor: [push-backend]

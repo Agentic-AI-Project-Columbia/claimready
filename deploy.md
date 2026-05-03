@@ -123,7 +123,7 @@ npm run dev    # http://localhost:3000
 
 | Service | CPU | Memory | Timeout | Min Instances | Max Instances |
 |---------|-----|--------|---------|---------------|---------------|
-| Backend | 2 | 2 GiB | 600s | 0 | 3 |
+| Backend | 2 | 2 GiB | 600s | 0 | 1 |
 | Frontend | 1 | 512 MiB | 60s | 0 | 3 |
 
 The backend needs higher resources because:
@@ -137,7 +137,7 @@ The backend needs higher resources because:
 
 **Build fails at Vertex AI auth:** Ensure the compute service account has `roles/aiplatform.user`.
 
-**Backend returns 503 on first request:** Cold start takes ~15s (Chroma ingestion + planner warmup). The health check at `/healthz` responds only after startup completes.
+**Backend returns 503 on first request:** Cold start takes ~15s (Chroma ingestion + planner warmup). The health check at `/api/healthz` responds only after startup completes.
 
 **WebSocket disconnects:** Cloud Run has a 600s idle timeout on WebSocket connections. The agent pipeline should complete well within this window.
 
