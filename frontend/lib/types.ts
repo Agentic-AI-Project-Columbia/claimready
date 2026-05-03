@@ -55,7 +55,9 @@ export const emptyIntake = (): IntakeForm => ({
   venue: { borough: '', basis: '' },
 });
 
-/** Wire-format event coming over the WebSocket from the backend. */
+/** Wire-format event coming over the WebSocket from the backend.
+ *  Mirrors the discriminated union in backend/events.py.
+ */
 export interface AgentEvent {
   type: string;
   name?: string;
@@ -65,7 +67,10 @@ export interface AgentEvent {
   tool_name?: string;
   args?: any;
   preview?: string;
+  preview_truncated?: boolean;
   facts?: any;
   pdf_ready?: boolean;
   message?: string;
+  attempt?: number;
+  reason?: string;
 }

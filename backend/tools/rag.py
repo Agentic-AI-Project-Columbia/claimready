@@ -11,7 +11,7 @@ external embedding API dependency at demo time.
 
 from __future__ import annotations
 
-import os
+import re
 from pathlib import Path
 from typing import List
 
@@ -40,8 +40,31 @@ def _client() -> chromadb.api.ClientAPI:
     return chromadb.PersistentClient(path=str(DB_DIR))
 
 
+def _split_sections(text: str) -> list[tuple[str, str]]:
+    """Split markdown into (heading, body) pairs on ## or # boundaries."""
+    parts = re.split(r"(?m)^(#{1,2}\s+.+)$", text)
+    sections: list[tuple[str, str]] = []
+    current_heading = ""
+    current_body = ""
+    for part in parts:
+        if re.match(r"^#{1,2}\s+", part):
+            if current_body.strip():
+                sections.append((current_heading, current_body.strip()))
+            current_heading = part.strip().lstrip("# ").strip()
+            current_body = ""
+        else:
+            current_body += part
+    if current_body.strip():
+        sections.append((current_heading, current_body.strip()))
+    return sections
+
+
 def ingest() -> int:
-    """Ingest the corpus directory into Chroma. Idempotent — drops & rebuilds."""
+    """Ingest the corpus directory into Chroma. Idempotent — drops & rebuilds.
+
+    Splits each markdown file on ## headings so that each chunk contains a
+    single conceptual section rather than an entire document.
+    """
     client = _client()
     try:
         client.delete_collection(COLLECTION)
@@ -52,10 +75,18 @@ def ingest() -> int:
     docs, ids, metas = [], [], []
     for path in sorted(CORPUS_DIR.glob("*.md")):
         text = path.read_text(encoding="utf-8")
-        # Each doc is small; one chunk per file is fine for this demo.
-        docs.append(text)
-        ids.append(path.stem)
-        metas.append({"source": path.name})
+        sections = _split_sections(text)
+        if not sections:
+            sections = [("", text)]
+        for i, (heading, body) in enumerate(sections):
+            chunk = f"{heading}\n\n{body}" if heading else body
+            docs.append(chunk)
+            ids.append(f"{path.stem}_chunk{i}")
+            metas.append({
+                "source": path.name,
+                "section": heading,
+                "chunk_index": i,
+            })
     coll.add(documents=docs, ids=ids, metadatas=metas)
     return len(docs)
 

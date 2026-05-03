@@ -10,11 +10,15 @@ No scraping, no API key. Public dataset.
 
 from __future__ import annotations
 
+import logging
+import time
 from typing import List, Optional
 
 import requests
 from agents import function_tool
 from pydantic import BaseModel
+
+log = logging.getLogger("complaintgen.dos")
 
 SODA_URL = "https://data.ny.gov/resource/n9v6-gdp6.json"
 
@@ -49,12 +53,37 @@ class LookupResult(BaseModel):
     error: Optional[str] = None
 
 
+_MAX_RETRIES = 2
+_RETRY_BACKOFF = [1.0, 3.0]
+_RETRIABLE_STATUS = {429, 500, 502, 503, 504}
+
+
 def _query_soda(name: str, limit: int = 5) -> List[dict]:
     where = f"upper(current_entity_name) like upper('%{name.replace(chr(39), chr(39)*2)}%')"
     params = {"$where": where, "$limit": str(limit)}
-    resp = requests.get(SODA_URL, params=params, timeout=15)
-    resp.raise_for_status()
-    return resp.json()
+    last_exc: Exception | None = None
+    for attempt in range(_MAX_RETRIES + 1):
+        try:
+            resp = requests.get(SODA_URL, params=params, timeout=15)
+            if resp.status_code in _RETRIABLE_STATUS and attempt < _MAX_RETRIES:
+                log.warning("SODA API returned %d, retrying (attempt %d)", resp.status_code, attempt + 1)
+                time.sleep(_RETRY_BACKOFF[attempt])
+                continue
+            resp.raise_for_status()
+            return resp.json()
+        except requests.exceptions.ConnectionError as exc:
+            last_exc = exc
+            if attempt < _MAX_RETRIES:
+                log.warning("SODA connection error, retrying (attempt %d): %s", attempt + 1, exc)
+                time.sleep(_RETRY_BACKOFF[attempt])
+            continue
+        except requests.exceptions.Timeout as exc:
+            last_exc = exc
+            if attempt < _MAX_RETRIES:
+                log.warning("SODA timeout, retrying (attempt %d)", attempt + 1)
+                time.sleep(_RETRY_BACKOFF[attempt])
+            continue
+    raise last_exc or RuntimeError("SODA API request failed after retries")
 
 
 @function_tool

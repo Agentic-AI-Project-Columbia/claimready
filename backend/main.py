@@ -28,9 +28,12 @@ from pathlib import Path
 from typing import Any, Dict, List
 
 from agents import Runner
-from fastapi import FastAPI, HTTPException, UploadFile, WebSocket, WebSocketDisconnect
+from fastapi import Depends, FastAPI, HTTPException, Request, UploadFile, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
+from slowapi import Limiter
+from slowapi.errors import RateLimitExceeded
+from slowapi.util import get_remote_address
 
 from demo_scenario import (
     DEMO_BLURB,
@@ -43,27 +46,54 @@ from runtime import get_planner
 from schema import CaseFacts
 from tools.pdf_render import render_packet
 from tools.rag import ingest
+from tracing import get_tracer, setup_tracing
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
+try:
+    from pythonjsonlogger.json import JsonFormatter
+    _handler = logging.StreamHandler()
+    _handler.setFormatter(JsonFormatter(
+        fmt="%(asctime)s %(levelname)s %(name)s %(message)s",
+        rename_fields={"asctime": "timestamp", "levelname": "severity"},
+    ))
+    logging.basicConfig(level=logging.INFO, handlers=[_handler])
+except ImportError:
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 log = logging.getLogger("complaintgen")
 
 DATA_DIR = Path(__file__).resolve().parent / "data"
 CASES_DIR = DATA_DIR / "cases"
 CASES_DIR.mkdir(parents=True, exist_ok=True)
 
+API_KEY = os.environ.get("API_KEY", "")
+limiter = Limiter(key_func=get_remote_address)
+
+
+def _check_api_key(request: Request) -> None:
+    """Validate API key if one is configured via the API_KEY env var."""
+    if not API_KEY:
+        return
+    key = request.headers.get("X-API-Key", "")
+    if key != API_KEY:
+        raise HTTPException(status_code=401, detail="Invalid or missing API key")
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    setup_tracing()
     log.info("Ingesting legal corpus into Chroma…")
     n = ingest()
     log.info("Ingested %d documents.", n)
     log.info("Warming up planner…")
     get_planner()
-    log.info("Backend ready.")
+    log.info("Backend ready. API_KEY configured: %s", bool(API_KEY))
     yield
 
 
-app = FastAPI(title="Small Claims Complaint Generator", lifespan=lifespan)
+app = FastAPI(title="ClaimReady backend", lifespan=lifespan)
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, lambda req, exc: JSONResponse(
+    status_code=429, content={"detail": "Rate limit exceeded. Try again in a moment."},
+))
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -89,8 +119,9 @@ def healthz():
     return {"ok": True}
 
 
-@app.post("/api/case")
-async def create_case(intake: Dict[str, Any]):
+@app.post("/api/case", dependencies=[Depends(_check_api_key)])
+@limiter.limit("5/minute")
+async def create_case(request: Request, intake: Dict[str, Any]):
     """Start a new case. `intake` is the partial CaseFacts JSON from the wizard.
 
     Evidence files should already have been POSTed via /api/case/{id}/evidence,
@@ -116,8 +147,9 @@ def demo_scenario():
     }
 
 
-@app.post("/api/demo/run")
-async def demo_run():
+@app.post("/api/demo/run", dependencies=[Depends(_check_api_key)])
+@limiter.limit("5/minute")
+async def demo_run(request: Request):
     """One-click grader path: spawn a case from the bundled scenario.
 
     Returns the case_id; the client opens the WebSocket as usual to watch
@@ -135,6 +167,24 @@ async def demo_run():
     }
 
 
+GCS_BUCKET = os.environ.get("GCS_EVIDENCE_BUCKET", "")
+
+
+def _upload_to_gcs(case_id: str, filename: str, data: bytes) -> None:
+    """Upload evidence to GCS if a bucket is configured."""
+    if not GCS_BUCKET:
+        return
+    try:
+        from google.cloud import storage
+        client = storage.Client()
+        bucket = client.bucket(GCS_BUCKET)
+        blob = bucket.blob(f"{case_id}/{filename}")
+        blob.upload_from_string(data)
+        log.info("Uploaded %s to gs://%s/%s/%s", filename, GCS_BUCKET, case_id, filename)
+    except Exception as exc:
+        log.warning("GCS upload failed for %s: %s", filename, exc)
+
+
 @app.post("/api/case/{case_id}/evidence")
 async def upload_evidence(case_id: str, files: List[UploadFile]):
     """Upload one or more evidence files; returns extracted text per file."""
@@ -143,6 +193,7 @@ async def upload_evidence(case_id: str, files: List[UploadFile]):
         raw = await f.read()
         path = _case_dir(case_id) / f.filename
         path.write_bytes(raw)
+        _upload_to_gcs(case_id, f.filename, raw)
         text = _extract_text(path, f.content_type or "")
         items.append({
             "filename": f.filename,
@@ -207,7 +258,15 @@ def case_facts(case_id: str):
 # --------------------------------------------------------------------------- #
 
 
+def _persist_event(case_id: str, msg: Dict[str, Any]) -> None:
+    """Append event to a JSON-lines file for replay after restarts."""
+    events_file = _case_dir(case_id) / "events.jsonl"
+    with events_file.open("a", encoding="utf-8") as f:
+        f.write(json.dumps(msg, default=str) + "\n")
+
+
 async def _emit(case_id: str, msg: Dict[str, Any]) -> None:
+    _persist_event(case_id, msg)
     q = _event_queues.get(case_id)
     if q is not None:
         await q.put(msg)
@@ -215,46 +274,55 @@ async def _emit(case_id: str, msg: Dict[str, Any]) -> None:
 
 async def _run_case(case_id: str, intake: Dict[str, Any]) -> None:
     """Drive the planner, stream events, render PDF when done."""
-    try:
-        await _emit(case_id, {"type": "agent_started", "name": "Planner"})
-        _case_state[case_id]["status"] = "running"
-
-        planner = get_planner()
-        prompt = _build_prompt(intake)
-
-        result = Runner.run_streamed(planner, prompt, max_turns=50)
-        async for event in result.stream_events():
-            await _forward_event(case_id, event)
-
-        final = result.final_output
-        if not isinstance(final, CaseFacts):
-            try:
-                final = CaseFacts.model_validate(final)
-            except Exception:
-                final = _facts_from_intake(intake)
-
-        # Render PDF
-        pdf_path = _case_dir(case_id) / "packet.pdf"
-        render_packet(final, output_path=pdf_path)
-
-        _case_state[case_id]["status"] = "done"
-        _case_state[case_id]["facts"] = final.model_dump(mode="json")
-        await _emit(case_id, {
-            "type": "done",
-            "facts": _case_state[case_id]["facts"],
-            "pdf_ready": True,
-        })
-    except Exception as exc:
-        log.exception("case %s failed", case_id)
-        # Even on failure, render whatever we have so the demo always produces a PDF.
+    extra = {"case_id": case_id}
+    tracer = get_tracer()
+    with tracer.start_as_current_span("pipeline.run", attributes={"case_id": case_id}):
         try:
-            facts = _facts_from_intake(intake)
-            render_packet(facts, output_path=_case_dir(case_id) / "packet.pdf")
-            _case_state[case_id]["status"] = "done_with_errors"
-            _case_state[case_id]["facts"] = facts.model_dump(mode="json")
-        except Exception:
-            pass
-        await _emit(case_id, {"type": "error", "message": str(exc)})
+            log.info("Starting agent pipeline", extra=extra)
+            await _emit(case_id, {"type": "agent_started", "name": "Planner"})
+            _case_state[case_id]["status"] = "running"
+
+            planner = get_planner()
+            prompt = _build_prompt(intake)
+
+            result = Runner.run_streamed(planner, prompt, max_turns=50)
+            event_count = 0
+            async for event in result.stream_events():
+                await _forward_event(case_id, event)
+                event_count += 1
+
+            log.info("Agent pipeline completed, %d events streamed", event_count, extra=extra)
+
+            final = result.final_output
+            if not isinstance(final, CaseFacts):
+                try:
+                    final = CaseFacts.model_validate(final)
+                except Exception:
+                    log.warning("Could not parse final output as CaseFacts, using intake fallback", extra=extra)
+                    final = _facts_from_intake(intake)
+
+            pdf_path = _case_dir(case_id) / "packet.pdf"
+            render_packet(final, output_path=pdf_path)
+            log.info("PDF rendered to %s", pdf_path, extra=extra)
+
+            _case_state[case_id]["status"] = "done"
+            _case_state[case_id]["facts"] = final.model_dump(mode="json")
+            await _emit(case_id, {
+                "type": "done",
+                "facts": _case_state[case_id]["facts"],
+                "pdf_ready": True,
+            })
+        except Exception as exc:
+            log.exception("Case failed: %s", exc, extra=extra)
+            try:
+                facts = _facts_from_intake(intake)
+                render_packet(facts, output_path=_case_dir(case_id) / "packet.pdf")
+                _case_state[case_id]["status"] = "done_with_errors"
+                _case_state[case_id]["facts"] = facts.model_dump(mode="json")
+                log.info("Fallback PDF rendered from intake", extra=extra)
+            except Exception:
+                pass
+            await _emit(case_id, {"type": "error", "message": str(exc)})
 
 
 def _build_prompt(intake: Dict[str, Any]) -> str:

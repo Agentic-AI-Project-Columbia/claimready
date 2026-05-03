@@ -52,13 +52,7 @@ CREAM       = colors.HexColor("#FAF7F2")
 RULE_GREY   = colors.HexColor("#E8DFCE")
 MID_GREY    = colors.HexColor("#C9BBA0")
 
-BOROUGH_COURT_ADDRESS = {
-    "Manhattan":    "111 Centre Street, New York, NY 10013",
-    "Bronx":        "851 Grand Concourse, Bronx, NY 10451",
-    "Brooklyn":     "141 Livingston Street, Brooklyn, NY 11201",
-    "Queens":       "89-17 Sutphin Boulevard, Jamaica, NY 11435",
-    "Staten Island":"927 Castleton Avenue, Staten Island, NY 10310",
-}
+from config import BOROUGH_COURT_ADDRESS
 
 W = 6.5 * inch   # usable text width
 

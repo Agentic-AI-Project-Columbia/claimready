@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'Quietcase — Small Claims, Filed Right',
+  title: 'ClaimReady — Small Claims, Filed Right',
   description:
     'Stop writing off unpaid invoices. Generate a court-ready NYC small-claims packet in minutes.',
 };

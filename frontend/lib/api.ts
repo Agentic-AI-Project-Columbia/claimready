@@ -9,12 +9,20 @@
 export const BACKEND_URL =
   process.env.NEXT_PUBLIC_BACKEND_URL ?? 'http://localhost:8000';
 
+const API_KEY = process.env.NEXT_PUBLIC_API_KEY ?? '';
+
+function authHeaders(): Record<string, string> {
+  const h: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (API_KEY) h['X-API-Key'] = API_KEY;
+  return h;
+}
+
 export type Intake = Record<string, any>;
 
 export async function createCase(intake: Intake): Promise<{ case_id: string }> {
   const res = await fetch(`${BACKEND_URL}/api/case`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: authHeaders(),
     body: JSON.stringify(intake),
   });
   if (!res.ok) throw new Error(`createCase failed: ${res.status}`);
@@ -61,7 +69,10 @@ export async function getDemoScenario(): Promise<DemoScenario> {
 }
 
 export async function runDemo(): Promise<{ case_id: string; title: string; blurb: string }> {
-  const res = await fetch(`${BACKEND_URL}/api/demo/run`, { method: 'POST' });
+  const res = await fetch(`${BACKEND_URL}/api/demo/run`, {
+    method: 'POST',
+    headers: authHeaders(),
+  });
   if (!res.ok) throw new Error(`runDemo failed: ${res.status}`);
   return res.json();
 }

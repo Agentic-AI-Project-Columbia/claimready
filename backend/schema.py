@@ -7,10 +7,12 @@ Planner merges partials before the Drafter renders the PDF packet.
 
 from __future__ import annotations
 
-from datetime import date
+import datetime
 from typing import List, Literal, Optional
 
 from pydantic import BaseModel, Field
+
+Date = datetime.date
 
 
 class Party(BaseModel):
@@ -32,7 +34,7 @@ class Defendant(Party):
 
 
 class Contract(BaseModel):
-    date_formed: Optional[date] = None
+    date_formed: Optional[Date] = None
     scope_of_work: str = ""
     agreed_amount: float = 0.0
     payment_terms: str = ""
@@ -40,13 +42,13 @@ class Contract(BaseModel):
 
 
 class Performance(BaseModel):
-    delivered_on: Optional[date] = None
+    delivered_on: Optional[Date] = None
     deliverables: List[str] = Field(default_factory=list)
     evidence_ids: List[str] = Field(default_factory=list)
 
 
 class Breach(BaseModel):
-    date: Optional[date] = None
+    date: Optional[Date] = None
     nature: str = "non-payment"
     amount_owed: float = 0.0
     evidence_ids: List[str] = Field(default_factory=list)
@@ -54,7 +56,7 @@ class Breach(BaseModel):
 
 class Damages(BaseModel):
     principal: float = 0.0
-    interest_from: Optional[date] = None
+    interest_from: Optional[Date] = None
     interest_rate: float = 0.09
     total_demanded: float = 0.0
 

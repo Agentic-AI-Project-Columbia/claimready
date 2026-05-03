@@ -1,4 +1,4 @@
-# Quietcase — Small Claims, Filed Right
+# ClaimReady — Small Claims, Filed Right
 
 A planner-executor agent that turns your messy unpaid-invoice evidence
 (emails, contracts, screenshots) into a court-ready NYC Civil Court small-claims
@@ -12,9 +12,9 @@ defendant is a NY-registered LLC or corp · output is PDF (no e-filing).
 
 ## Live URLs
 
-- **Frontend:** https://quietcase-frontend-7pj7nolpla-ue.a.run.app
-- **Backend (API):** https://quietcase-backend-7pj7nolpla-ue.a.run.app
-- **Demo scenario JSON:** https://quietcase-backend-7pj7nolpla-ue.a.run.app/api/demo/scenario
+- **Frontend:** https://claimready-frontend-7pj7nolpla-ue.a.run.app
+- **Backend (API):** https://claimready-backend-7pj7nolpla-ue.a.run.app
+- **Demo scenario JSON:** https://claimready-backend-7pj7nolpla-ue.a.run.app/api/demo/scenario
 
 ---
 
@@ -38,12 +38,12 @@ Programmatic demo (no UI):
 ```bash
 # 1. Kick off a run
 CASE=$(curl -sS -X POST -H "Content-Length: 0" \
-  https://quietcase-backend-7pj7nolpla-ue.a.run.app/api/demo/run \
+  https://claimready-backend-7pj7nolpla-ue.a.run.app/api/demo/run \
   | python -c "import sys,json; print(json.load(sys.stdin)['case_id'])")
 
 # 2. Poll until the PDF is ready (~60–90s for the four-agent run)
 until curl -fsS -o packet.pdf \
-  "https://quietcase-backend-7pj7nolpla-ue.a.run.app/api/case/$CASE/pdf"; do
+  "https://claimready-backend-7pj7nolpla-ue.a.run.app/api/case/$CASE/pdf"; do
   sleep 5
 done && open packet.pdf
 ```
@@ -151,6 +151,6 @@ Deploy to GCP Cloud Run: see [deploy.md](deploy.md).
 
 ## Disclaimer
 
-Quietcase generates documents and educational guidance from public statutes
+ClaimReady generates documents and educational guidance from public statutes
 and court forms. It is not a law firm and does not provide legal advice. For
 a complex case, see a licensed attorney.

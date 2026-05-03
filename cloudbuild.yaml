@@ -2,18 +2,18 @@
 #
 # Substitutions (set on the Cloud Build trigger or via --substitutions):
 #   _REGION         e.g. us-east1
-#   _BACKEND_NAME   e.g. quietcase-backend
-#   _FRONTEND_NAME  e.g. quietcase-frontend
-#   _AR_REPO        e.g. quietcase     (Artifact Registry repo, in _REGION)
+#   _BACKEND_NAME   e.g. claimready-backend
+#   _FRONTEND_NAME  e.g. claimready-frontend
+#   _AR_REPO        e.g. claimready     (Artifact Registry repo, in _REGION)
 #
 # After the backend deploys, the second build uses the backend's URL as
 # NEXT_PUBLIC_BACKEND_URL when building the frontend image (baked at build time).
 
 substitutions:
   _REGION: us-east1
-  _BACKEND_NAME: quietcase-backend
-  _FRONTEND_NAME: quietcase-frontend
-  _AR_REPO: quietcase
+  _BACKEND_NAME: claimready-backend
+  _FRONTEND_NAME: claimready-frontend
+  _AR_REPO: claimready
 
 steps:
 # ─── 1. Build & push backend ──────────────────────────────────────────

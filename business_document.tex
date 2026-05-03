@@ -7,7 +7,7 @@
 \usepackage{xcolor}
 
 \definecolor{quietgreen}{HTML}{355E3B}
-\definecolor{quietink}{HTML}{1F2421}
+\definecolor{claimink}{HTML}{1F2421}
 
 \hypersetup{
   colorlinks=true,
@@ -22,12 +22,12 @@
 
 \begin{document}
 \pagecolor{white}
-\color{quietink}
+\color{claimink}
 
-{\Large\bfseries\color{quietink} Quietcase: Small Claims, Filed Right}\\[-1pt]
+{\Large\bfseries\color{claimink} ClaimReady: Small Claims, Filed Right}\\[-1pt]
 {\color{quietgreen}\rule{\linewidth}{0.8pt}}\\[-3pt]
 {\large\bfseries\color{quietgreen} For the invoice too small for a lawyer and too large to write off.}\\[-1pt]
-Quietcase helps NYC freelancers turn messy contracts, invoices, emails, and screenshots into a court-ready small-claims packet for unpaid service work.
+ClaimReady helps NYC freelancers turn messy contracts, invoices, emails, and screenshots into a court-ready small-claims packet for unpaid service work.
 
 {\color{quietgreen}\rule{\linewidth}{0.35pt}}\vspace{-3pt}
 
@@ -35,7 +35,7 @@ Quietcase helps NYC freelancers turn messy contracts, invoices, emails, and scre
 
 {\bfseries The problem.} Today, the user sends awkward follow-up emails, copies a generic demand-letter template, gives up, or tries to file in small claims alone. Hiring counsel rarely makes sense: Clio reports the average New York lawyer hourly rate at \(\$426\), which can consume the economics of a \(\$2{,}000\)--\(\$5{,}000\) claim. Small claims is designed for this gap, but filing still requires the user to identify the correct legal defendant, find a service address, choose venue, organize exhibits, calculate damages, and create forms the clerk can process. NYC Small Claims allows claims up to \(\$10{,}000\) with only a \(\$15\)--\(\$20\) filing fee, but the paperwork and confidence gap stop many people before they start.
 
-{\bfseries The economics.} Quietcase charges \(\$29\) per completed packet. For one user-month, assume one case packet: about 120k input tokens for intake, evidence, retrieval, and tool context, plus 15k output tokens for extracted facts, agent outputs, and final drafting. With Gemini 2.5 Flash pricing around \(\$0.30\) per 1M input tokens and \(\$2.50\) per 1M output tokens, model cost is about \(\$0.07\) per case. Adding Cloud Run, storage, PDF generation, logs, failed runs, payment fees, and light support gives an estimated variable cost of \(\$3\)--\(\$5\). At \(\$29\), gross margin is roughly 83\%--90\% before fixed engineering and acquisition.
+{\bfseries The economics.} ClaimReady charges \(\$29\) per completed packet. For one user-month, assume one case packet: about 120k input tokens for intake, evidence, retrieval, and tool context, plus 15k output tokens for extracted facts, agent outputs, and final drafting. With Gemini 2.5 Flash pricing around \(\$0.30\) per 1M input tokens and \(\$2.50\) per 1M output tokens, model cost is about \(\$0.07\) per case. Adding Cloud Run, storage, PDF generation, logs, failed runs, payment fees, and light support gives an estimated variable cost of \(\$3\)--\(\$5\). At \(\$29\), gross margin is roughly 83\%--90\% before fixed engineering and acquisition.
 
 \vspace{-1pt}
 \begin{center}
@@ -54,7 +54,7 @@ Break point & Scope creep & Huge evidence sets, multi-claim disputes, attorney r
 
 {\bfseries Why these technical choices.} The agent design mirrors the real filing workflow. The Next.js wizard collects only the facts the court needs, reducing user confusion. The Extractor reads messy contracts, invoices, emails, and screenshots so users do not have to translate evidence into legal structure. The DefendantResolver calls the NY Department of State dataset because suing the wrong entity or using the wrong service address can sink the case. The JurisdictionChecker uses deterministic tools and a small Chroma RAG corpus to validate the \(\$10{,}000\) cap, statute-of-limitations fit, venue, and citations without expensive broad research. Structured Pydantic outputs make the PDF renderer reliable. Gemini 2.5 Flash is the right model because it supports multimodal, long-context evidence review while keeping per-case token cost far below the \(\$29\) price.
 
-{\bfseries Close.} Quietcase wins by being deliberately small: not ``AI lawyer for everything,'' but a cheap, focused filing assistant for one painful, common, economically underserved legal workflow.
+{\bfseries Close.} ClaimReady wins by being deliberately small: not ``AI lawyer for everything,'' but a cheap, focused filing assistant for one painful, common, economically underserved legal workflow.
 
 \vspace{1pt}
 {\scriptsize

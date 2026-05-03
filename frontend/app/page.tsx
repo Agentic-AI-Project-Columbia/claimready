@@ -412,7 +412,7 @@ function Header() {
           <Scale size={20} />
         </div>
         <div>
-          <p className="font-serif text-xl text-ink-900 leading-none">Quietcase</p>
+          <p className="font-serif text-xl text-ink-900 leading-none">ClaimReady</p>
           <p className="text-[11px] uppercase tracking-[0.2em] text-sage-600 mt-1">
             Small claims, filed right
           </p>
@@ -499,7 +499,7 @@ function Welcome({
       </div>
 
       <p className="text-xs text-ink-300 mt-12 max-w-xl mx-auto leading-relaxed text-center">
-        Quietcase generates documents and educational guidance. It is not a
+        ClaimReady generates documents and educational guidance. It is not a
         law firm and does not provide legal advice. For a complex case, see
         a licensed attorney.
       </p>

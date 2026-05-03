@@ -2767,7 +2767,7 @@ wheels = [
 ]
 
 [[package]]
-name = "quietcase-backend"
+name = "claimready-backend"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [

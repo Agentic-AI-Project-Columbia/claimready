@@ -16,10 +16,10 @@ gcloud services enable \
   artifactregistry.googleapis.com
 
 # Create the Artifact Registry repo
-gcloud artifacts repositories create quietcase \
+gcloud artifacts repositories create claimready \
   --repository-format=docker \
   --location=us-east1 \
-  --description="Quietcase Docker images"
+  --description="ClaimReady Docker images"
 
 # Grant Cloud Run runtime SA access to Vertex AI
 PROJECT_NUMBER=$(gcloud projects describe agentic-ai-487000 --format='value(projectNumber)')
@@ -43,7 +43,7 @@ From the project root (where `cloudbuild.yaml` lives):
 ```bash
 gcloud builds submit \
   --config cloudbuild.yaml \
-  --substitutions=_REGION=us-east1,_BACKEND_NAME=quietcase-backend,_FRONTEND_NAME=quietcase-frontend,_AR_REPO=quietcase
+  --substitutions=_REGION=us-east1,_BACKEND_NAME=claimready-backend,_FRONTEND_NAME=claimready-frontend,_AR_REPO=claimready
 ```
 
 That single command:

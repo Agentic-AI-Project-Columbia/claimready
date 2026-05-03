@@ -12,10 +12,12 @@ from typing import List
 from agents import function_tool
 from pydantic import BaseModel
 
-NYC_SMALL_CLAIMS_CAP = 10_000.00
-SOL_BREACH_OF_CONTRACT_YEARS = 6
-STATUTORY_INTEREST_RATE = 0.09
-NYC_BOROUGHS = {"Manhattan", "Bronx", "Brooklyn", "Queens", "Staten Island"}
+from config import (
+    NYC_BOROUGHS,
+    NYC_SMALL_CLAIMS_CAP,
+    SOL_BREACH_OF_CONTRACT_YEARS,
+    STATUTORY_INTEREST_RATE,
+)
 
 
 class JurisdictionResult(BaseModel):
