@@ -12,9 +12,18 @@ defendant is a NY-registered LLC or corp · output is PDF (no e-filing).
 
 ## Live URLs
 
-- **Frontend:** https://claimready-frontend-7pj7nolpla-ue.a.run.app
-- **Backend (API):** https://claimready-backend-7pj7nolpla-ue.a.run.app
-- **Demo scenario JSON:** https://claimready-backend-7pj7nolpla-ue.a.run.app/api/demo/scenario
+The currently-deployed Cloud Run services (last deployed under the previous
+project name) are reachable at:
+
+- **Frontend:** https://quietcase-frontend-7pj7nolpla-ue.a.run.app
+- **Backend (API):** https://quietcase-backend-7pj7nolpla-ue.a.run.app
+- **Demo scenario JSON:** https://quietcase-backend-7pj7nolpla-ue.a.run.app/api/demo/scenario
+
+After the next `gcloud builds submit` with the updated `cloudbuild.yaml`,
+the services will be re-provisioned at:
+
+- https://claimready-frontend-7pj7nolpla-ue.a.run.app
+- https://claimready-backend-7pj7nolpla-ue.a.run.app
 
 ---
 
@@ -38,12 +47,12 @@ Programmatic demo (no UI):
 ```bash
 # 1. Kick off a run
 CASE=$(curl -sS -X POST -H "Content-Length: 0" \
-  https://claimready-backend-7pj7nolpla-ue.a.run.app/api/demo/run \
+  https://quietcase-backend-7pj7nolpla-ue.a.run.app/api/demo/run \
   | python -c "import sys,json; print(json.load(sys.stdin)['case_id'])")
 
 # 2. Poll until the PDF is ready (~60–90s for the four-agent run)
 until curl -fsS -o packet.pdf \
-  "https://claimready-backend-7pj7nolpla-ue.a.run.app/api/case/$CASE/pdf"; do
+  "https://quietcase-backend-7pj7nolpla-ue.a.run.app/api/case/$CASE/pdf"; do
   sleep 5
 done && open packet.pdf
 ```
