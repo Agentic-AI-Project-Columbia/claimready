@@ -335,6 +335,8 @@ async def _run_case(case_id: str, intake: Dict[str, Any]) -> None:
                     log.warning("Could not parse final output as CaseFacts, using intake fallback", extra=extra)
                     final = _facts_from_intake(intake)
 
+            _backfill_dos_fields(final, extra)
+
             pdf_path = _case_dir(case_id) / "packet.pdf"
             render_packet(final, output_path=pdf_path)
             log.info("PDF rendered to %s", pdf_path, extra=extra)
@@ -359,6 +361,53 @@ async def _run_case(case_id: str, intake: Dict[str, Any]) -> None:
             except Exception:
                 pass
             await _emit(case_id, {"type": "error", "message": str(exc)})
+
+
+def _backfill_dos_fields(final: CaseFacts, extra: Dict[str, Any]) -> None:
+    """If the agent skipped DefendantResolver, fill in DOS fields directly.
+
+    Gemini occasionally chooses not to hand off to DefendantResolver despite
+    the planner's instructions, leaving service_address empty — which would
+    block service of process. This deterministic fallback queries the same
+    SODA endpoint and merges the canonical record. Safe no-op if the agent
+    already populated dos_id.
+    """
+    if final.defendant.dos_id or not final.defendant.name:
+        return
+    try:
+        from tools.dos_lookup import _query_soda
+        rows = _query_soda(final.defendant.name, limit=5)
+    except Exception as exc:
+        log.warning("DOS backfill query failed: %s", exc, extra=extra)
+        final.notes.append(
+            f"NY DOS lookup for '{final.defendant.name}' failed; verify the legal name and obtain the registered service-of-process address before filing."
+        )
+        return
+    if not rows:
+        log.info("DOS backfill: no matches for %r", final.defendant.name, extra=extra)
+        final.notes.append(
+            f"NY DOS lookup returned no matches for '{final.defendant.name}'. Verify the exact legal name with the NY Department of State before filing."
+        )
+        return
+    pick = next(
+        (r for r in rows if (r.get("jurisdiction") or "").strip().lower() == "new york"
+            and "LIABILITY" in (r.get("entity_type") or "").upper()),
+        rows[0],
+    )
+    final.defendant.dos_entity_name = pick.get("current_entity_name", "")
+    final.defendant.dos_id = str(pick.get("dos_id", ""))
+    parts = [pick.get("dos_process_address_1", "")]
+    city_state = " ".join(p for p in [pick.get("dos_process_city", ""), pick.get("dos_process_state", "")] if p)
+    if city_state:
+        parts.append(city_state)
+    if pick.get("dos_process_zip"):
+        parts[-1] = f"{parts[-1]} {pick['dos_process_zip']}".strip()
+    final.defendant.service_address = ", ".join(p for p in parts if p)
+    final.defendant.registered_agent = pick.get("registered_agent_name", "") or pick.get("dos_process_name", "")
+    log.info(
+        "DOS backfill applied: dos_id=%s, address=%s",
+        final.defendant.dos_id, final.defendant.service_address, extra=extra,
+    )
 
 
 _IMAGE_EXTENSIONS: Dict[str, str] = {
