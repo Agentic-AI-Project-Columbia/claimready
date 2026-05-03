@@ -698,6 +698,29 @@ function SampleEvidencePack() {
 //                              Review (Step 7)                                //
 // --------------------------------------------------------------------------- //
 
+interface MissingField {
+  label: string;
+  jumpTo: number;
+}
+
+function findMissingRequired(intake: IntakeForm, fileCount: number): MissingField[] {
+  const missing: MissingField[] = [];
+  if (!intake.plaintiff.name) missing.push({ label: 'Your full legal name', jumpTo: 2 });
+  if (!intake.plaintiff.address) missing.push({ label: 'Your street address', jumpTo: 2 });
+  if (!intake.defendant.name) missing.push({ label: "Defendant's business name", jumpTo: 3 });
+  if (!intake.contract.scope_of_work) missing.push({ label: 'What you agreed to do', jumpTo: 4 });
+  if (!intake.contract.agreed_amount || intake.contract.agreed_amount <= 0) {
+    missing.push({ label: 'Agreed contract amount', jumpTo: 4 });
+  }
+  if (!intake.breach.date) missing.push({ label: 'Date of breach', jumpTo: 5 });
+  if (!intake.breach.amount_owed || intake.breach.amount_owed <= 0) {
+    missing.push({ label: 'Amount unpaid', jumpTo: 5 });
+  }
+  if (!intake.venue.borough) missing.push({ label: 'Borough you will file in', jumpTo: 5 });
+  // Evidence is strongly recommended but not strictly required — surface as a soft warning, not a block
+  return missing;
+}
+
 function ReviewStep({
   intake,
   fileCount,
@@ -713,6 +736,12 @@ function ReviewStep({
   onStepClick?: (step: number) => void;
   onAutofill?: () => void;
 }) {
+  const missing = findMissingRequired(intake, fileCount);
+  const evidenceMissing = fileCount === 0;
+
+  const isMissing = (v: string | number) =>
+    v === '' || v === '—' || v === '$0.00';
+
   const sections: Array<{ title: string; rows: Array<[string, React.ReactNode]> }> = [
     {
       title: 'Plaintiff',
@@ -767,7 +796,53 @@ function ReviewStep({
       onBack={onBack}
       onNext={onNext}
       nextLabel="Generate my packet"
+      nextDisabled={missing.length > 0}
     >
+      {missing.length > 0 && (
+        <div
+          role="alert"
+          className="mb-6 rounded-xl border border-ochre-400/40 bg-ochre-400/10 px-4 py-3"
+        >
+          <p className="text-xs uppercase tracking-widest text-ochre-600 font-semibold mb-1.5">
+            {missing.length} required field{missing.length > 1 ? 's' : ''} still empty
+          </p>
+          <p className="text-sm text-ink-900/80 mb-2">
+            We can't generate the complaint until these are filled in. Click any item to jump back.
+          </p>
+          <ul className="flex flex-wrap gap-1.5">
+            {missing.map((m) => (
+              <li key={m.label}>
+                <button
+                  type="button"
+                  onClick={() => onStepClick?.(m.jumpTo)}
+                  className="text-xs font-medium px-2.5 py-1 rounded-md bg-white border border-ochre-400/40 text-ochre-600 hover:bg-ochre-400/20 transition"
+                >
+                  {m.label} →
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {missing.length === 0 && evidenceMissing && (
+        <div className="mb-6 rounded-xl border border-ink-200 bg-ink-50/60 px-4 py-3 text-sm text-ink-900/80">
+          <p className="font-semibold text-ink-900 mb-1">No evidence attached.</p>
+          <p>
+            You can still generate the packet, but the Statement of Claim is much stronger when
+            the agent has documents to reference. You can{' '}
+            <button
+              type="button"
+              onClick={() => onStepClick?.(6)}
+              className="underline text-sage-700 hover:text-sage-800"
+            >
+              go back and attach evidence
+            </button>{' '}
+            or proceed without it.
+          </p>
+        </div>
+      )}
+
       <div className="space-y-8">
         {sections.map((s) => (
           <div key={s.title}>
@@ -775,12 +850,17 @@ function ReviewStep({
               {s.title}
             </p>
             <dl className="divide-y divide-ink-200/70">
-              {s.rows.map(([k, v]) => (
-                <div key={k} className="grid grid-cols-3 py-2.5 gap-4">
-                  <dt className="text-sm text-ink-300">{k}</dt>
-                  <dd className="col-span-2 text-sm text-ink-900">{v}</dd>
-                </div>
-              ))}
+              {s.rows.map(([k, v]) => {
+                const empty = typeof v === 'string' && isMissing(v);
+                return (
+                  <div key={k} className="grid grid-cols-3 py-2.5 gap-4">
+                    <dt className="text-sm text-ink-300">{k}</dt>
+                    <dd className={clsx('col-span-2 text-sm', empty ? 'text-ochre-600 font-medium' : 'text-ink-900')}>
+                      {empty ? `${v}  · missing` : v}
+                    </dd>
+                  </div>
+                );
+              })}
             </dl>
           </div>
         ))}
