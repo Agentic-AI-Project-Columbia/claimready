@@ -48,7 +48,7 @@ export function DefendantStep({
             onChange={(e) =>
               setIntake((p) => ({ ...p, defendant: { ...p.defendant, name: e.target.value } }))
             }
-            placeholder="Acme Widgets LLC"
+            placeholder="Vanguard Marketing LLC"
           />
         </Field>
       </FieldGrid>

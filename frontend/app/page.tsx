@@ -25,10 +25,12 @@ import {
   caseEventsURL,
   createCase,
   pdfURL,
+  prepareCase,
   runDemo,
+  startCase,
   uploadEvidence,
 } from '@/lib/api';
-import { emptyIntake, type AgentEvent, type IntakeForm } from '@/lib/types';
+import { emptyIntake, demoIntake, type AgentEvent, type IntakeForm } from '@/lib/types';
 
 const TOTAL_STEPS = 8;
 
@@ -92,16 +94,24 @@ export default function Page() {
 
   // ──────────────────────────────────────────────────────────────────────
   // STEP 8 — kick off the wizard run when we land on it (skip if demo)
+  // Flow: prepare case → upload evidence → embed extracted text → start run
   // ──────────────────────────────────────────────────────────────────────
   useEffect(() => {
     if (step !== TOTAL_STEPS || caseId || mode === 'demo') return;
     (async () => {
       try {
-        const { case_id } = await createCase(intake);
-        setCaseId(case_id);
-        attachWebSocket(case_id);
+        let enrichedIntake: Record<string, any> = { ...intake };
         if (files.length > 0) {
-          await uploadEvidence(case_id, files.map((f) => f.file));
+          const { case_id: prepId } = await prepareCase();
+          const { items } = await uploadEvidence(prepId, files.map((f) => f.file));
+          enrichedIntake.evidence = items;
+          const { case_id } = await startCase(prepId, enrichedIntake);
+          setCaseId(case_id);
+          attachWebSocket(case_id);
+        } else {
+          const { case_id } = await createCase(enrichedIntake);
+          setCaseId(case_id);
+          attachWebSocket(case_id);
         }
       } catch (e: any) {
         setError(e?.message ?? String(e));
@@ -114,7 +124,7 @@ export default function Page() {
   // ──────────────────────────────────────────────────────────────────────
   return (
     <div className="max-w-7xl mx-auto px-6 py-12">
-      <Header />
+      <Header onLogoClick={() => setStep(1)} />
 
       {step === 1 && (
         <Welcome onNext={next} onDemo={startDemoRun} demoStarting={demoStarting} />
@@ -126,6 +136,8 @@ export default function Page() {
           totalSteps={TOTAL_STEPS}
           kicker="Step 2 of 8"
           title="Tell us about you, the plaintiff."
+          onStepClick={(s) => setStep(s)}
+          onAutofill={() => setIntake(demoIntake)}
           helpText={
             <>
               You're filing this case in your own name (<i>pro se</i>). The
@@ -190,6 +202,8 @@ export default function Page() {
           totalSteps={TOTAL_STEPS}
           kicker="Step 3 of 8"
           title="Who owes you the money?"
+          onStepClick={(s) => setStep(s)}
+          onAutofill={() => setIntake(demoIntake)}
           helpText={
             <>
               We'll look this LLC or corporation up against the official New
@@ -215,7 +229,7 @@ export default function Page() {
                 onChange={(e) =>
                   setIntake((p) => ({ ...p, defendant: { ...p.defendant, name: e.target.value } }))
                 }
-                placeholder="Acme Widgets LLC"
+                placeholder="Vanguard Marketing LLC"
               />
             </Field>
           </FieldGrid>
@@ -228,6 +242,8 @@ export default function Page() {
           totalSteps={TOTAL_STEPS}
           kicker="Step 4 of 8"
           title="What did you agree to do?"
+          onStepClick={(s) => setStep(s)}
+          onAutofill={() => setIntake(demoIntake)}
           helpText={
             <>
               The court needs the bones of your contract: when you formed it,
@@ -277,7 +293,7 @@ export default function Page() {
                 onChange={(e) =>
                   setIntake((p) => ({ ...p, contract: { ...p.contract, scope_of_work: e.target.value } }))
                 }
-                placeholder="Graphic-design services for Acme's Spring 2025 product launch — 12 illustrations + brand guidelines."
+                placeholder="Graphic-design services for Vanguard Marketing's Spring 2025 product launch — 12 illustrations + brand guidelines."
               />
             </Field>
             <Field label="Payment terms" span="full" hint="e.g. Net 30, 50% on signing, etc.">
@@ -299,6 +315,8 @@ export default function Page() {
           totalSteps={TOTAL_STEPS}
           kicker="Step 5 of 8"
           title="What went wrong?"
+          onStepClick={(s) => setStep(s)}
+          onAutofill={() => setIntake(demoIntake)}
           helpText={
             <>
               Most small-claims cases against businesses are non-payment.
@@ -375,6 +393,8 @@ export default function Page() {
           totalSteps={TOTAL_STEPS}
           kicker="Step 6 of 8"
           title="Show us your evidence."
+          onStepClick={(s) => setStep(s)}
+          onAutofill={() => setIntake(demoIntake)}
           helpText={
             <>
               The agent reads everything you upload — contracts, invoices,
@@ -396,6 +416,8 @@ export default function Page() {
           fileCount={files.length}
           onBack={back}
           onNext={next}
+          onStepClick={(s) => setStep(s)}
+          onAutofill={() => setIntake(demoIntake)}
         />
       )}
 
@@ -417,20 +439,24 @@ export default function Page() {
 //                              Top header                                     //
 // --------------------------------------------------------------------------- //
 
-function Header() {
+function Header({ onLogoClick }: { onLogoClick: () => void }) {
   return (
     <header className="flex items-center justify-between mb-12">
-      <div className="flex items-center gap-3">
+      <button
+        type="button"
+        onClick={onLogoClick}
+        className="flex items-center gap-3 hover:opacity-80 transition"
+      >
         <div className="w-10 h-10 rounded-xl bg-sage-700 text-ink-50 flex items-center justify-center shadow-sm">
           <Scale size={20} />
         </div>
-        <div>
+        <div className="text-left">
           <p className="font-serif text-xl text-ink-900 leading-none">ClaimReady</p>
           <p className="text-[11px] uppercase tracking-[0.2em] text-sage-600 mt-1">
             Small claims, filed right
           </p>
         </div>
-      </div>
+      </button>
       <a
         href="https://ww2.nycourts.gov/courts/nyc/smallclaims/general.shtml"
         target="_blank"
@@ -609,11 +635,15 @@ function ReviewStep({
   fileCount,
   onBack,
   onNext,
+  onStepClick,
+  onAutofill,
 }: {
   intake: IntakeForm;
   fileCount: number;
   onBack: () => void;
   onNext: () => void;
+  onStepClick?: (step: number) => void;
+  onAutofill?: () => void;
 }) {
   const sections: Array<{ title: string; rows: Array<[string, React.ReactNode]> }> = [
     {
@@ -657,6 +687,8 @@ function ReviewStep({
       totalSteps={TOTAL_STEPS}
       kicker="Step 7 of 8"
       title="One last look before we generate."
+      onStepClick={onStepClick}
+      onAutofill={onAutofill}
       helpText={
         <>
           When you click Generate, our planner agent kicks off five
@@ -696,7 +728,7 @@ function ReviewStep({
 /** The hardcoded facts for the one-click demo — matches backend/demo_scenario.py */
 const DEMO_CASE = {
   plaintiff: { name: 'Jane Q. Doe', address: '123 Smith Street, Brooklyn NY 11201', email: 'jane@janedoedesign.example' },
-  defendant: { name: 'Acme Widgets LLC', note: 'NY DOS lookup will resolve the official registered address' },
+  defendant: { name: 'Vanguard Marketing LLC', note: 'NY DOS lookup will resolve the official registered address' },
   contract: {
     date: 'January 15, 2025',
     scope: '12 original illustrations + 1 brand-color guideline for Spring 2025 product launch',
@@ -708,7 +740,7 @@ const DEMO_CASE = {
     { date: 'Mar 3, 2025', event: 'Client confirms receipt in writing: "illustrations look fantastic"' },
     { date: 'Mar 31, 2025', event: 'Payment due — nothing received (breach date)' },
     { date: 'Apr 1, 2025', event: 'First payment reminder sent — no reply' },
-    { date: 'Apr 14, 2025', event: 'Second email + phone call to Mihir\'s direct line — voicemail' },
+    { date: 'Apr 14, 2025', event: 'Second email + phone call to Derek\'s direct line — voicemail' },
     { date: 'Apr 17, 2025', event: 'Called main line — "accounting will call back in 24h" — never did' },
     { date: 'Apr 21, 2025', event: 'Final notice email threatening small-claims filing' },
   ],

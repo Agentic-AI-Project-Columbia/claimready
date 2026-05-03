@@ -1,6 +1,6 @@
 'use client';
 
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Sparkles } from 'lucide-react';
 import clsx from 'clsx';
 
 interface StepShellProps {
@@ -13,6 +13,8 @@ interface StepShellProps {
   onNext?: () => void;
   nextLabel?: string;
   nextDisabled?: boolean;
+  onStepClick?: (step: number) => void;
+  onAutofill?: () => void;
   children: React.ReactNode;
 }
 
@@ -26,13 +28,15 @@ export function StepShell({
   onNext,
   nextLabel = 'Continue',
   nextDisabled = false,
+  onStepClick,
+  onAutofill,
   children,
 }: StepShellProps) {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr_320px] gap-10">
       {/* LEFT — progress rail */}
       <aside className="hidden lg:block">
-        <ProgressRail step={step} totalSteps={totalSteps} />
+        <ProgressRail step={step} totalSteps={totalSteps} onStepClick={onStepClick} />
       </aside>
 
       {/* CENTER — the actual form */}
@@ -61,6 +65,15 @@ export function StepShell({
           >
             <ChevronLeft size={16} /> Back
           </button>
+          {onAutofill && (
+            <button
+              onClick={onAutofill}
+              type="button"
+              className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg border border-ochre-400/40 text-ochre-600 hover:bg-ochre-400/10 transition"
+            >
+              <Sparkles size={14} /> Fill demo data
+            </button>
+          )}
           {onNext && (
             <button
               onClick={onNext}
@@ -93,7 +106,15 @@ export function StepShell({
   );
 }
 
-function ProgressRail({ step, totalSteps }: { step: number; totalSteps: number }) {
+function ProgressRail({
+  step,
+  totalSteps,
+  onStepClick,
+}: {
+  step: number;
+  totalSteps: number;
+  onStepClick?: (step: number) => void;
+}) {
   const labels = [
     'Welcome',
     'About you',
@@ -115,26 +136,30 @@ function ProgressRail({ step, totalSteps }: { step: number; totalSteps: number }
           const isDone = idx < step;
           const isCurrent = idx === step;
           return (
-            <li
-              key={label}
-              className={clsx(
-                'flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition',
-                isCurrent && 'bg-sage-700 text-ink-50 font-semibold',
-                isDone && 'text-sage-700',
-                !isDone && !isCurrent && 'text-ink-300',
-              )}
-            >
-              <span
+            <li key={label}>
+              <button
+                type="button"
+                onClick={() => onStepClick?.(idx)}
                 className={clsx(
-                  'w-6 h-6 flex items-center justify-center rounded-full text-[11px] font-semibold',
-                  isCurrent && 'bg-ochre-400 text-ink-900',
-                  isDone && 'bg-sage-100 text-sage-700',
-                  !isDone && !isCurrent && 'bg-ink-100 text-ink-300',
+                  'flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition w-full text-left',
+                  onStepClick && 'cursor-pointer',
+                  isCurrent && 'bg-sage-700 text-ink-50 font-semibold hover:bg-sage-800',
+                  isDone && 'text-sage-700 hover:bg-ink-100',
+                  !isDone && !isCurrent && 'text-ink-300 hover:text-ink-600 hover:bg-ink-100',
                 )}
               >
-                {isDone ? '✓' : idx}
-              </span>
-              <span>{label}</span>
+                <span
+                  className={clsx(
+                    'w-6 h-6 flex items-center justify-center rounded-full text-[11px] font-semibold',
+                    isCurrent && 'bg-ochre-400 text-ink-900',
+                    isDone && 'bg-sage-100 text-sage-700',
+                    !isDone && !isCurrent && 'bg-ink-100 text-ink-300',
+                  )}
+                >
+                  {isDone ? '✓' : idx}
+                </span>
+                <span>{label}</span>
+              </button>
             </li>
           );
         })}

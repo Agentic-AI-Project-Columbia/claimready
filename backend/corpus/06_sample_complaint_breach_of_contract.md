@@ -12,7 +12,7 @@
 
   — against —
 
-**ACME WIDGETS LLC**, with its registered service-of-process address at
+**VANGUARD MARKETING LLC**, with its registered service-of-process address at
 c/o New York State Secretary of State, 99 Washington Ave., Albany, NY 12231,
                  *Defendant.*
 

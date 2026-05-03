@@ -19,6 +19,7 @@ The WebSocket emits JSON messages like:
 from __future__ import annotations
 
 import asyncio
+import base64
 import json
 import logging
 import os
@@ -124,14 +125,47 @@ def healthz():
 async def create_case(request: Request, intake: Dict[str, Any]):
     """Start a new case. `intake` is the partial CaseFacts JSON from the wizard.
 
-    Evidence files should already have been POSTed via /api/case/{id}/evidence,
-    but for the demo simplest path the intake also includes "evidence" as a list
-    of { filename, mime_type, text } objects (text already extracted client-side
-    or via /api/case/{id}/evidence which also fills text).
+    Evidence should be embedded under intake["evidence"] as a list of
+    {filename, mime_type, text} objects before calling this endpoint.
+    For the wizard flow, use /api/case/prepare → /api/case/{id}/evidence →
+    /api/case/{id}/start instead.
     """
     case_id = uuid.uuid4().hex[:12]
     _event_queues[case_id] = asyncio.Queue()
     _case_state[case_id] = {"intake": intake, "status": "queued"}
+    asyncio.create_task(_run_case(case_id, intake))
+    return {"case_id": case_id}
+
+
+@app.post("/api/case/prepare", dependencies=[Depends(_check_api_key)])
+@limiter.limit("10/minute")
+async def prepare_case(request: Request):
+    """Allocate a case_id without starting the agent run.
+
+    Use this before uploading evidence so files land in the right case
+    directory and can be read by the multimodal prompt builder.
+    """
+    case_id = uuid.uuid4().hex[:12]
+    _event_queues[case_id] = asyncio.Queue()
+    _case_state[case_id] = {"status": "preparing"}
+    return {"case_id": case_id}
+
+
+@app.post("/api/case/{case_id}/start", dependencies=[Depends(_check_api_key)])
+@limiter.limit("5/minute")
+async def start_case(case_id: str, request: Request, intake: Dict[str, Any]):
+    """Start the agent run for a previously prepared case.
+
+    Call /api/case/prepare first to get a case_id, upload evidence to
+    /api/case/{case_id}/evidence, then call this with the enriched intake.
+    """
+    state = _case_state.get(case_id)
+    if state is None:
+        raise HTTPException(404, "Unknown case — call /api/case/prepare first")
+    if state.get("status") != "preparing":
+        raise HTTPException(409, "Case already started")
+    _case_state[case_id]["intake"] = intake
+    _case_state[case_id]["status"] = "queued"
     asyncio.create_task(_run_case(case_id, intake))
     return {"case_id": case_id}
 
@@ -283,7 +317,7 @@ async def _run_case(case_id: str, intake: Dict[str, Any]) -> None:
             _case_state[case_id]["status"] = "running"
 
             planner = get_planner()
-            prompt = _build_prompt(intake)
+            prompt = _build_prompt(intake, case_id)
 
             result = Runner.run_streamed(planner, prompt, max_turns=50)
             event_count = 0
@@ -327,20 +361,78 @@ async def _run_case(case_id: str, intake: Dict[str, Any]) -> None:
             await _emit(case_id, {"type": "error", "message": str(exc)})
 
 
-def _build_prompt(intake: Dict[str, Any]) -> str:
-    """Compose the planner prompt from intake JSON + evidence summaries."""
+_IMAGE_EXTENSIONS: Dict[str, str] = {
+    ".png": "image/png",
+    ".jpg": "image/jpeg",
+    ".jpeg": "image/jpeg",
+    ".gif": "image/gif",
+    ".webp": "image/webp",
+}
+_MAX_IMAGE_BYTES = 10 * 1024 * 1024
+
+
+def _image_to_data_url(path: Path) -> str | None:
+    """Return a base64 data URL if *path* is a supported image, else None."""
+    mime = _IMAGE_EXTENSIONS.get(path.suffix.lower())
+    if not mime or not path.exists():
+        return None
+    raw = path.read_bytes()
+    if len(raw) > _MAX_IMAGE_BYTES:
+        log.warning("Image %s too large (%d bytes), skipping", path.name, len(raw))
+        return None
+    return f"data:{mime};base64,{base64.b64encode(raw).decode('ascii')}"
+
+
+def _build_prompt(intake: Dict[str, Any], case_id: str = "") -> str | list:
+    """Compose the planner prompt from intake JSON + evidence.
+
+    Returns a multimodal message list when image evidence is present on disk,
+    otherwise a plain string (both are accepted by Runner.run_streamed).
+    """
     evidence = intake.pop("evidence", []) if isinstance(intake, dict) else []
     intake_json = json.dumps(intake, indent=2, default=str)
-    evid = "\n\n".join(
-        f"--- EVIDENCE id={i+1} filename={e.get('filename')} ---\n{e.get('text', '')[:6000]}"
-        for i, e in enumerate(evidence or [])
-    ) or "(no text evidence supplied)"
-    return (
+
+    text_parts: List[str] = []
+    image_parts: List[Dict[str, Any]] = []
+    case_dir = CASES_DIR / case_id if case_id else None
+
+    for i, e in enumerate(evidence or []):
+        filename = e.get("filename", "")
+        text = e.get("text", "")
+
+        data_url = None
+        if case_dir and filename:
+            data_url = _image_to_data_url(case_dir / filename)
+
+        if data_url:
+            image_parts.append({
+                "type": "input_image",
+                "image_url": data_url,
+                "detail": "auto",
+            })
+            label = f"--- EVIDENCE id={i+1} filename={filename} ---\n[Image attached below]"
+            if text:
+                label += f"\nExtracted text: {text[:6000]}"
+            text_parts.append(label)
+        elif text:
+            text_parts.append(
+                f"--- EVIDENCE id={i+1} filename={filename} ---\n{text[:6000]}"
+            )
+
+    evid_text = "\n\n".join(text_parts) or "(no text evidence supplied)"
+    text_prompt = (
         "Run the full small-claims pipeline.\n\n"
         "USER INTAKE (partial CaseFacts JSON):\n```json\n" + intake_json + "\n```\n\n"
-        "EVIDENCE:\n" + evid + "\n\n"
+        "EVIDENCE:\n" + evid_text + "\n\n"
         "Return the finalized CaseFacts."
     )
+
+    if image_parts:
+        content: List[Dict[str, Any]] = [{"type": "input_text", "text": text_prompt}]
+        content.extend(image_parts)
+        return [{"role": "user", "content": content}]
+
+    return text_prompt
 
 
 def _facts_from_intake(intake: Dict[str, Any]) -> CaseFacts:

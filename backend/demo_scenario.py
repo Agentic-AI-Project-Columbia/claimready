@@ -20,7 +20,7 @@ from typing import Any, Dict, List
 DEMO_TITLE = "Freelance designer vs. NYC marketing LLC — $4,800 unpaid"
 DEMO_BLURB = (
     "Jane Q. Doe is a Brooklyn-based graphic designer who completed a full "
-    "illustration package for Acme Widgets LLC's Spring 2025 product launch. "
+    "illustration package for Vanguard Marketing LLC's Spring 2025 product launch. "
     "She delivered every file on time on March 1, 2025. The client's own "
     "operations manager emailed to confirm receipt and said it looked great. "
     "Then — nothing. The Net-30 invoice came due on March 31, 2025 and was "
@@ -42,7 +42,7 @@ DEMO_INTAKE: Dict[str, Any] = {
         "email": "jane@janedoedesign.example",
     },
     "defendant": {
-        "name": "Acme Widgets LLC",
+        "name": "Vanguard Marketing LLC",
         "address": "",
         "city": "",
         "state": "NY",
@@ -54,7 +54,7 @@ DEMO_INTAKE: Dict[str, Any] = {
         "date_formed": "2025-01-15",
         "scope_of_work": (
             "Twelve (12) original illustrations and a one-page brand-color "
-            "guideline for Acme Widgets LLC's Spring 2025 product launch, "
+            "guideline for Vanguard Marketing LLC's Spring 2025 product launch, "
             "delivered as print-ready PDF + editable AI files."
         ),
         "agreed_amount": 4800.0,
@@ -93,9 +93,9 @@ DEMO_EVIDENCE: List[Dict[str, str]] = [
             "Designer:        Jane Q. Doe\n"
             "                 123 Smith Street, Brooklyn, NY 11201\n"
             "                 jane@janedoedesign.example\n"
-            "Client:          Acme Widgets LLC\n"
+            "Client:          Vanguard Marketing LLC\n"
             "                 a New York limited liability company\n"
-            "                 (Mihir Patel, Operations Manager, signing on behalf)\n"
+            "                 (Derek Chan, Operations Manager, signing on behalf)\n"
             "──────────────────────────────────────────────────\n\n"
             "1. SCOPE OF WORK\n"
             "   Designer agrees to create and deliver:\n"
@@ -130,9 +130,9 @@ DEMO_EVIDENCE: List[Dict[str, str]] = [
             "SIGNATURES\n\n"
             "/s/ Jane Q. Doe                    Date: January 15, 2025\n"
             "Jane Q. Doe, Designer\n\n"
-            "/s/ M. Patel                       Date: January 15, 2025\n"
-            "Mihir Patel, Operations Manager\n"
-            "on behalf of Acme Widgets LLC\n"
+            "/s/ D. Chan                        Date: January 15, 2025\n"
+            "Derek Chan, Operations Manager\n"
+            "on behalf of Vanguard Marketing LLC\n"
             "══════════════════════════════════════════════════\n"
         ),
     },
@@ -153,9 +153,9 @@ DEMO_EVIDENCE: List[Dict[str, str]] = [
             "  jane@janedoedesign.example\n"
             "  (718) 555-0100\n\n"
             "BILL TO\n"
-            "  Acme Widgets LLC — Accounts Payable\n"
-            "  Attn: Mihir Patel, Operations Manager\n"
-            "  mpatel@acmewidgets.example\n\n"
+            "  Vanguard Marketing LLC — Accounts Payable\n"
+            "  Attn: Derek Chan, Operations Manager\n"
+            "  dchan@vanguardmarketing.example\n\n"
             "──────────────────────────────────────────────────\n"
             "  QTY  DESCRIPTION                              AMOUNT\n"
             "──────────────────────────────────────────────────\n"
@@ -183,10 +183,10 @@ DEMO_EVIDENCE: List[Dict[str, str]] = [
         "text": (
             "====== MESSAGE 1 OF 5 — Delivery confirmation ======\n"
             "From:    Jane Q. Doe <jane@janedoedesign.example>\n"
-            "To:      Mihir Patel <mpatel@acmewidgets.example>\n"
+            "To:      Derek Chan <dchan@vanguardmarketing.example>\n"
             "Date:    Saturday, March 1, 2025  11:47 AM\n"
             "Subject: Spring launch — final files delivered + Invoice #2025-001\n\n"
-            "Hi Mihir,\n\n"
+            "Hi Derek,\n\n"
             "All done! Attached you'll find:\n"
             "  • 12_illustrations_final.pdf  — print-ready, CMYK, 300 dpi\n"
             "  • 12_illustrations_final.ai   — fully editable Illustrator source\n"
@@ -198,7 +198,7 @@ DEMO_EVIDENCE: List[Dict[str, str]] = [
             "Best,\n"
             "Jane\n\n\n"
             "====== MESSAGE 2 OF 5 — Client confirms receipt ======\n"
-            "From:    Mihir Patel <mpatel@acmewidgets.example>\n"
+            "From:    Derek Chan <dchan@vanguardmarketing.example>\n"
             "To:      Jane Q. Doe <jane@janedoedesign.example>\n"
             "Date:    Monday, March 3, 2025  10:14 AM\n"
             "Subject: Re: Spring launch — final files delivered + Invoice #2025-001\n\n"
@@ -206,13 +206,13 @@ DEMO_EVIDENCE: List[Dict[str, str]] = [
             "Got everything, thanks. The illustrations look fantastic — exactly\n"
             "what we needed for the launch. Forwarding the invoice to accounting\n"
             "today so you should be all set.\n\n"
-            "— Mihir\n\n\n"
+            "— Derek\n\n\n"
             "====== MESSAGE 3 OF 5 — First payment reminder (day after due date) ======\n"
             "From:    Jane Q. Doe <jane@janedoedesign.example>\n"
-            "To:      Mihir Patel <mpatel@acmewidgets.example>\n"
+            "To:      Derek Chan <dchan@vanguardmarketing.example>\n"
             "Date:    Tuesday, April 1, 2025  9:02 AM\n"
             "Subject: Invoice #2025-001 — payment due yesterday\n\n"
-            "Hi Mihir,\n\n"
+            "Hi Derek,\n\n"
             "Just a friendly nudge — Invoice #2025-001 for $4,800.00 had a\n"
             "due date of March 31 (Net 30) and it looks like it's still\n"
             "outstanding.\n\n"
@@ -222,10 +222,10 @@ DEMO_EVIDENCE: List[Dict[str, str]] = [
             "Jane\n\n\n"
             "====== MESSAGE 4 OF 5 — No reply; second follow-up ======\n"
             "From:    Jane Q. Doe <jane@janedoedesign.example>\n"
-            "To:      Mihir Patel <mpatel@acmewidgets.example>\n"
+            "To:      Derek Chan <dchan@vanguardmarketing.example>\n"
             "Date:    Monday, April 14, 2025  11:30 AM\n"
             "Subject: Re: Invoice #2025-001 — now 14 days overdue\n\n"
-            "Mihir,\n\n"
+            "Derek,\n\n"
             "Following up again. It has now been two weeks since the due date\n"
             "and I haven't received a response to my April 1 email. The invoice\n"
             "total of $4,800.00 remains unpaid.\n\n"
@@ -234,10 +234,10 @@ DEMO_EVIDENCE: List[Dict[str, str]] = [
             "Jane Doe\n\n\n"
             "====== MESSAGE 5 OF 5 — Final email; no response ever received ======\n"
             "From:    Jane Q. Doe <jane@janedoedesign.example>\n"
-            "To:      Mihir Patel <mpatel@acmewidgets.example>\n"
+            "To:      Derek Chan <dchan@vanguardmarketing.example>\n"
             "Date:    Monday, April 21, 2025  2:15 PM\n"
             "Subject: Re: Invoice #2025-001 — final notice before formal demand\n\n"
-            "Mihir,\n\n"
+            "Derek,\n\n"
             "I have not received any reply to my previous two emails or any\n"
             "payment toward Invoice #2025-001 ($4,800.00, due March 31, 2025).\n\n"
             "This is my final notice. If full payment is not received by\n"
@@ -253,19 +253,19 @@ DEMO_EVIDENCE: List[Dict[str, str]] = [
         "mime_type": "text/plain",
         "text": (
             "══════════════════════════════════════════════════\n"
-            "  PERSONAL LOG — Acme Widgets LLC / Invoice #2025-001\n"
+            "  PERSONAL LOG — Vanguard Marketing LLC / Invoice #2025-001\n"
             "══════════════════════════════════════════════════\n\n"
-            "April 14, 2025 — Tried Mihir's direct line at (212) 555-0200.\n"
+            "April 14, 2025 — Tried Derek's direct line at (212) 555-0200.\n"
             "  Rang 4x, went to voicemail. Left a message asking him to call\n"
             "  back re: outstanding invoice. No return call.\n\n"
-            "April 17, 2025 — Called Acme Widgets main line at (212) 555-0100.\n"
+            "April 17, 2025 — Called Vanguard Marketing main line at (212) 555-0134.\n"
             "  Receptionist said 'someone from accounting will get back to you\n"
             "  within 24 hours.' As of April 22, no one has called.\n\n"
             "April 21, 2025 — Sent final email warning of small-claims filing\n"
             "  (see email thread, Message 5). Read receipt never returned.\n\n"
             "April 22, 2025 — Invoice is now 22 days overdue. Total owed:\n"
             "  $4,800.00. Client has confirmed receipt of all deliverables\n"
-            "  in writing (see Mihir's March 3 email) but has stopped\n"
+            "  in writing (see Derek's March 3 email) but has stopped\n"
             "  responding entirely.\n\n"
             "  Next step: send certified demand letter, then file in\n"
             "  Kings County (Brooklyn) Civil Court Small Claims Part.\n"

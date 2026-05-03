@@ -29,6 +29,28 @@ export async function createCase(intake: Intake): Promise<{ case_id: string }> {
   return res.json();
 }
 
+export async function prepareCase(): Promise<{ case_id: string }> {
+  const res = await fetch(`${BACKEND_URL}/api/case/prepare`, {
+    method: 'POST',
+    headers: authHeaders(),
+  });
+  if (!res.ok) throw new Error(`prepareCase failed: ${res.status}`);
+  return res.json();
+}
+
+export async function startCase(
+  caseId: string,
+  intake: Intake,
+): Promise<{ case_id: string }> {
+  const res = await fetch(`${BACKEND_URL}/api/case/${caseId}/start`, {
+    method: 'POST',
+    headers: authHeaders(),
+    body: JSON.stringify(intake),
+  });
+  if (!res.ok) throw new Error(`startCase failed: ${res.status}`);
+  return res.json();
+}
+
 export async function uploadEvidence(
   caseId: string,
   files: File[],

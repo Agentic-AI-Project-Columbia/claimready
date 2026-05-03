@@ -55,6 +55,47 @@ export const emptyIntake = (): IntakeForm => ({
   venue: { borough: '', basis: '' },
 });
 
+export const demoIntake: IntakeForm = {
+  plaintiff: {
+    name: 'Jane Q. Doe',
+    address: '123 Smith Street',
+    city: 'Brooklyn',
+    state: 'NY',
+    zip_code: '11201',
+    phone: '(718) 555-0100',
+    email: 'jane@janedoedesign.example',
+  },
+  defendant: {
+    name: 'Vanguard Marketing LLC',
+    address: '',
+    city: '',
+    state: 'NY',
+    zip_code: '',
+    phone: '',
+    email: '',
+  },
+  contract: {
+    date_formed: '2025-01-15',
+    scope_of_work:
+      "Twelve (12) original illustrations and a one-page brand-color guideline for Vanguard Marketing LLC's Spring 2025 product launch, delivered as print-ready PDF + editable AI files.",
+    agreed_amount: 4800.0,
+    payment_terms: 'Net 30 from delivery.',
+  },
+  performance: {
+    delivered_on: '2025-03-01',
+    deliverables: ['12 illustrations (PDF + AI)', '1 brand-color guideline (PDF)'],
+  },
+  breach: {
+    date: '2025-03-31',
+    nature: 'non-payment',
+    amount_owed: 4800.0,
+  },
+  venue: {
+    borough: 'Brooklyn',
+    basis: "Defendant's principal place of business is in Brooklyn, and the parties' agreement was performed there.",
+  },
+};
+
 /** Wire-format event coming over the WebSocket from the backend.
  *  Mirrors the discriminated union in backend/events.py.
  */

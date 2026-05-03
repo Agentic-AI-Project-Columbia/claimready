@@ -83,7 +83,7 @@ export function ContractStep({
             onChange={(e) =>
               setIntake((p) => ({ ...p, contract: { ...p.contract, scope_of_work: e.target.value } }))
             }
-            placeholder="Graphic-design services for Acme's Spring 2025 product launch — 12 illustrations + brand guidelines."
+            placeholder="Graphic-design services for Vanguard Marketing's Spring 2025 product launch — 12 illustrations + brand guidelines."
           />
         </Field>
         <Field label="Payment terms" span="full" hint="e.g. Net 30, 50% on signing, etc.">
