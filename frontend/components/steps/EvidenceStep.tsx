@@ -20,7 +20,7 @@ export function EvidenceStep({
     <StepShell
       step={6}
       totalSteps={totalSteps}
-      kicker="Step 6 of 7"
+      kicker="Step 6 of 8"
       title="Show us your evidence."
       helpText={
         <>

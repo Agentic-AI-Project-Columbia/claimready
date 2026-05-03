@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ArrowRight,
   Scale,
@@ -12,6 +12,7 @@ import {
   PlayCircle,
   ChevronDown,
   ChevronUp,
+  RotateCcw,
 } from 'lucide-react';
 import clsx from 'clsx';
 
@@ -78,6 +79,17 @@ export default function Page() {
     }
   }
 
+  function handleRetry() {
+    setCaseId(null);
+    setEvents([]);
+    setDone(false);
+    setError(null);
+    setDemoStarting(false);
+    if (mode === 'demo') {
+      startDemoRun();
+    }
+  }
+
   // ──────────────────────────────────────────────────────────────────────
   // STEP 8 — kick off the wizard run when we land on it (skip if demo)
   // ──────────────────────────────────────────────────────────────────────
@@ -112,7 +124,7 @@ export default function Page() {
         <StepShell
           step={2}
           totalSteps={TOTAL_STEPS}
-          kicker="Step 2 of 7"
+          kicker="Step 2 of 8"
           title="Tell us about you, the plaintiff."
           helpText={
             <>
@@ -176,7 +188,7 @@ export default function Page() {
         <StepShell
           step={3}
           totalSteps={TOTAL_STEPS}
-          kicker="Step 3 of 7"
+          kicker="Step 3 of 8"
           title="Who owes you the money?"
           helpText={
             <>
@@ -214,7 +226,7 @@ export default function Page() {
         <StepShell
           step={4}
           totalSteps={TOTAL_STEPS}
-          kicker="Step 4 of 7"
+          kicker="Step 4 of 8"
           title="What did you agree to do?"
           helpText={
             <>
@@ -285,7 +297,7 @@ export default function Page() {
         <StepShell
           step={5}
           totalSteps={TOTAL_STEPS}
-          kicker="Step 5 of 7"
+          kicker="Step 5 of 8"
           title="What went wrong?"
           helpText={
             <>
@@ -361,7 +373,7 @@ export default function Page() {
         <StepShell
           step={6}
           totalSteps={TOTAL_STEPS}
-          kicker="Step 6 of 7"
+          kicker="Step 6 of 8"
           title="Show us your evidence."
           helpText={
             <>
@@ -394,6 +406,7 @@ export default function Page() {
           done={done}
           error={error}
           isDemo={mode === 'demo'}
+          onRetry={handleRetry}
         />
       )}
     </div>
@@ -462,6 +475,19 @@ function Welcome({
         </p>
 
         <div className="flex flex-wrap justify-center gap-3 mb-10">
+          <button
+            onClick={onDemo}
+            disabled={demoStarting}
+            className={clsx(
+              'inline-flex items-center gap-2 px-7 py-3.5 rounded-xl font-semibold shadow-paper transition active:translate-y-[1px]',
+              demoStarting
+                ? 'bg-ink-200 text-ink-300 cursor-wait'
+                : 'bg-ochre-400 hover:bg-ochre-500 text-ink-900',
+            )}
+          >
+            <PlayCircle size={18} />
+            {demoStarting ? 'Starting…' : 'Run the sample case'}
+          </button>
           <button
             onClick={onNext}
             className="bg-sage-700 hover:bg-sage-800 text-ink-50 px-7 py-3.5 rounded-xl font-semibold inline-flex items-center gap-2 shadow-paper transition active:translate-y-[1px]"
@@ -629,7 +655,7 @@ function ReviewStep({
     <StepShell
       step={7}
       totalSteps={TOTAL_STEPS}
-      kicker="Step 7 of 7"
+      kicker="Step 7 of 8"
       title="One last look before we generate."
       helpText={
         <>
@@ -807,19 +833,33 @@ function RunStep({
   done,
   error,
   isDemo,
+  onRetry,
 }: {
   caseId: string | null;
   events: AgentEvent[];
   done: boolean;
   error: string | null;
   isDemo: boolean;
+  onRetry?: () => void;
 }) {
   const downloadHref = useMemo(() => (caseId ? pdfURL(caseId) : '#'), [caseId]);
+
+  const [elapsed, setElapsed] = useState(0);
+  const t0 = useRef(Date.now());
+  useEffect(() => {
+    t0.current = Date.now();
+    setElapsed(0);
+  }, [caseId]);
+  useEffect(() => {
+    if (done || error) return;
+    const iv = setInterval(() => setElapsed(Math.floor((Date.now() - t0.current) / 1000)), 1000);
+    return () => clearInterval(iv);
+  }, [done, error]);
 
   return (
     <div className="max-w-6xl mx-auto animate-fade-in-up">
       <p className="text-xs uppercase tracking-[0.2em] text-sage-600 font-semibold mb-3">
-        {isDemo ? 'Demo run · Building the packet' : 'Step 8 of 7 · Building your packet'}
+        {isDemo ? 'Demo run · Building the packet' : 'Step 8 of 8 · Building your packet'}
       </p>
       <h1 className="font-serif text-3xl md:text-4xl text-ink-900 leading-tight mb-2">
         {done && !error
@@ -833,8 +873,17 @@ function RunStep({
           ? 'Download the PDF below. It contains a demand letter, court-ready Statement of Claim, exhibit index, and filing guide.'
           : error
           ? error
-          : 'This takes 30–60 s. Each specialist agent runs in sequence — watch them hand off in real time on the right.'}
+          : <>This takes 30–60 s. Each specialist agent runs in sequence — watch them hand off in real time on the right. <span className="font-mono text-sage-600">{elapsed}s</span></>}
       </p>
+
+      {error && onRetry && (
+        <button
+          onClick={onRetry}
+          className="mb-6 bg-sage-700 hover:bg-sage-800 text-ink-50 px-6 py-3 rounded-xl font-semibold inline-flex items-center gap-2 shadow-sm transition active:translate-y-[1px]"
+        >
+          <RotateCcw size={18} /> Try again
+        </button>
+      )}
 
       {/* Two-column layout in demo mode so the case brief sits beside the timeline */}
       <div className={clsx(isDemo ? 'grid grid-cols-1 lg:grid-cols-2 gap-6 items-start' : '')}>
@@ -868,6 +917,16 @@ function RunStep({
           >
             <Download size={18} /> Download PDF
           </a>
+        </div>
+      )}
+
+      {done && !error && caseId && (
+        <div className="mt-6 rounded-2xl border border-ink-200 overflow-hidden shadow-paper">
+          <iframe
+            src={downloadHref}
+            title="PDF Preview"
+            className="w-full h-[600px] bg-white"
+          />
         </div>
       )}
 

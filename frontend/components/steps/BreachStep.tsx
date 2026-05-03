@@ -31,7 +31,7 @@ export function BreachStep({
     <StepShell
       step={5}
       totalSteps={totalSteps}
-      kicker="Step 5 of 7"
+      kicker="Step 5 of 8"
       title="What went wrong?"
       helpText={
         <>

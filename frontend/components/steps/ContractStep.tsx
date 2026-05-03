@@ -31,7 +31,7 @@ export function ContractStep({
     <StepShell
       step={4}
       totalSteps={totalSteps}
-      kicker="Step 4 of 7"
+      kicker="Step 4 of 8"
       title="What did you agree to do?"
       helpText={
         <>

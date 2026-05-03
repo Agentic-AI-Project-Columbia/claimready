@@ -40,7 +40,7 @@ export function RunStep({
         </div>
       )}
       <p className="text-xs uppercase tracking-[0.2em] text-sage-600 font-semibold mb-3">
-        {isDemo ? 'Demo run · Building the packet' : 'Step 8 of 7 · Building your packet'}
+        {isDemo ? 'Demo run · Building the packet' : 'Step 8 of 8 · Building your packet'}
       </p>
       <h1 className="font-serif text-3xl md:text-4xl text-ink-900 leading-tight mb-2">
         {done && !error

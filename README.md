@@ -57,8 +57,8 @@ Source: [backend/demo_scenario.py](backend/demo_scenario.py).
 ```bash
 # Backend
 cd backend
-python -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
+uv sync                                                # creates .venv and installs from uv.lock
+source .venv/bin/activate                              # or: .venv\Scripts\activate on Windows
 gcloud auth application-default login
 export GCP_PROJECT_ID=csee4121-s26-492100
 export GCP_REGION=us-east1

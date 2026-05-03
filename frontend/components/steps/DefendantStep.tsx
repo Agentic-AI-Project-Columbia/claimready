@@ -21,7 +21,7 @@ export function DefendantStep({
     <StepShell
       step={3}
       totalSteps={totalSteps}
-      kicker="Step 3 of 7"
+      kicker="Step 3 of 8"
       title="Who owes you the money?"
       helpText={
         <>

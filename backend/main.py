@@ -320,6 +320,8 @@ async def _run_case(case_id: str, intake: Dict[str, Any]) -> None:
                 _case_state[case_id]["status"] = "done_with_errors"
                 _case_state[case_id]["facts"] = facts.model_dump(mode="json")
                 log.info("Fallback PDF rendered from intake", extra=extra)
+            except ValueError as ve:
+                log.warning("Fallback PDF validation failed: %s", ve, extra=extra)
             except Exception:
                 pass
             await _emit(case_id, {"type": "error", "message": str(exc)})

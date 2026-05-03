@@ -56,7 +56,7 @@ export function ReviewStep({
     <StepShell
       step={7}
       totalSteps={totalSteps}
-      kicker="Step 7 of 7"
+      kicker="Step 7 of 8"
       title="One last look before we generate."
       helpText={
         <>

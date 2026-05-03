@@ -39,6 +39,19 @@ export function WelcomeStep({
 
         <div className="flex flex-wrap justify-center gap-3 mb-10">
           <button
+            onClick={onDemo}
+            disabled={demoStarting}
+            className={clsx(
+              'inline-flex items-center gap-2 px-7 py-3.5 rounded-xl font-semibold shadow-paper transition active:translate-y-[1px]',
+              demoStarting
+                ? 'bg-ink-200 text-ink-300 cursor-wait'
+                : 'bg-ochre-400 hover:bg-ochre-500 text-ink-900',
+            )}
+          >
+            <PlayCircle size={18} />
+            {demoStarting ? 'Starting…' : 'Run the sample case'}
+          </button>
+          <button
             onClick={onNext}
             className="bg-sage-700 hover:bg-sage-800 text-ink-50 px-7 py-3.5 rounded-xl font-semibold inline-flex items-center gap-2 shadow-paper transition active:translate-y-[1px]"
           >

@@ -38,7 +38,7 @@ from reportlab.platypus import (
 )
 
 from schema import CaseFacts
-from tools.jurisdiction import _compute_damages_impl
+from tools.jurisdiction import DamagesResult, _compute_damages_impl
 
 TEMPLATES_DIR = Path(__file__).resolve().parent.parent / "templates"
 
@@ -154,7 +154,7 @@ def _short_scope(text: str, max_len: int = 100) -> str:
     so the cut point looks intentional rather than mid-word.
     """
     if not text:
-        return "[services rendered]"
+        return "services rendered"
     for prefix in (
         "Designer agrees to create and deliver:",
         "Contractor shall provide:",
@@ -176,6 +176,30 @@ def _short_scope(text: str, max_len: int = 100) -> str:
         if idx > max_len // 2:
             return chunk[:idx].strip() + "…"
     return chunk.rsplit(" ", 1)[0] + "…"
+
+
+def prepare_for_render(facts: CaseFacts) -> DamagesResult:
+    """Normalize damages once and validate minimum fields before rendering."""
+    errors: list[str] = []
+    if facts.damages.principal <= 0:
+        errors.append("damages.principal must be > 0")
+    if not facts.plaintiff.name:
+        errors.append("plaintiff.name is required")
+    if not (facts.defendant.name or facts.defendant.dos_entity_name):
+        errors.append("defendant name is required")
+    if errors:
+        raise ValueError("Cannot render court-ready packet: " + "; ".join(errors))
+
+    breach_iso = (
+        facts.breach.date.isoformat()
+        if facts.breach.date
+        else date.today().isoformat()
+    )
+    dmg = _compute_damages_impl(facts.damages.principal, breach_iso)
+    facts.damages.principal = dmg.principal
+    facts.damages.total_demanded = dmg.total_demanded
+    return dmg
+
 
 def _full_addr(p) -> str:
     parts = [p.address]
@@ -222,7 +246,7 @@ def _make_page_decorator(total_pages_ref: list):
         # Footer left — branding
         canvas.setFont("Helvetica", 7.5)
         canvas.setFillColor(MID_GREY)
-        canvas.drawString(0.9 * inch, 0.45 * inch, "QuietCase · NYC Small Claims Filing Packet")
+        canvas.drawString(0.9 * inch, 0.45 * inch, "ClaimReady · NYC Small Claims Filing Packet")
 
         # Footer right — page number
         canvas.drawRightString(w - 0.9 * inch, 0.45 * inch, f"Page {doc.page}")
@@ -499,11 +523,7 @@ def _render_claim(story, st, facts: CaseFacts):
 
 # ── Demand letter ──────────────────────────────────────────────────────────────
 
-def _render_demand_letter(story, st, facts: CaseFacts):
-    dmg = _compute_damages_impl(
-        facts.damages.principal,
-        facts.breach.date.isoformat() if facts.breach.date else date.today().isoformat(),
-    )
+def _render_demand_letter(story, st, facts: CaseFacts, dmg: DamagesResult):
     today = date.today().strftime("%B %d, %Y")
     bd_str = facts.breach.date.strftime("%B %d, %Y") if facts.breach.date else None
     cd_str = facts.contract.date_formed.strftime("%B %d, %Y") if facts.contract.date_formed else "[contract date]"
@@ -678,6 +698,7 @@ def _render_exhibit_index(story, st, facts: CaseFacts):
 
 def render_packet(facts: CaseFacts, output_path: Optional[Path] = None) -> bytes:
     """Render the full PDF packet. Returns bytes; optionally writes to output_path."""
+    dmg = prepare_for_render(facts)
     buf = io.BytesIO()
     page_decorator = _make_page_decorator([])
     doc = SimpleDocTemplate(
@@ -689,14 +710,14 @@ def render_packet(facts: CaseFacts, output_path: Optional[Path] = None) -> bytes
         bottomMargin=0.85 * inch,
         title=f"Small Claims Packet — {facts.plaintiff.name or 'Plaintiff'} v. "
               f"{facts.defendant.dos_entity_name or facts.defendant.name or 'Defendant'}",
-        author="QuietCase",
+        author="ClaimReady",
         subject="NYC Small Claims Court Filing Packet",
     )
     st = _styles()
     story: list = []
     _render_cover(story, st, facts)
     _render_claim(story, st, facts)
-    _render_demand_letter(story, st, facts)
+    _render_demand_letter(story, st, facts, dmg)
     _render_exhibit_index(story, st, facts)
     doc.build(story, onFirstPage=page_decorator, onLaterPages=page_decorator)
     data = buf.getvalue()

@@ -61,8 +61,8 @@ The two Cloud Run URLs are printed in the build log. Hit the frontend URL in a b
 ```bash
 # Backend
 cd backend
-python -m venv .venv && source .venv/bin/activate     # or: .venv\Scripts\activate on Windows
-pip install -r requirements.txt
+uv sync                                                # creates .venv and installs from uv.lock
+source .venv/bin/activate                              # or: .venv\Scripts\activate on Windows
 gcloud auth application-default login                  # one-time, for Vertex AI auth
 export GCP_PROJECT_ID=agentic-ai-487000
 export GCP_REGION=us-east1
