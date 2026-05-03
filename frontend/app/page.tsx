@@ -18,7 +18,7 @@ import clsx from 'clsx';
 
 import { StepShell } from '@/components/StepShell';
 import { Field, FieldGrid } from '@/components/Field';
-import { EvidenceUpload, type PreviewFile } from '@/components/EvidenceUpload';
+import { EvidenceUpload, SAMPLE_DRAG_MIME, type PreviewFile } from '@/components/EvidenceUpload';
 import { DefendantLookup } from '@/components/DefendantLookup';
 import { AgentTimeline } from '@/components/AgentTimeline';
 import {
@@ -653,6 +653,12 @@ const SAMPLE_EVIDENCE = [
 ];
 
 function SampleEvidencePack() {
+  const handleDragStart = (e: React.DragEvent, file: string) => {
+    e.dataTransfer.effectAllowed = 'copy';
+    e.dataTransfer.setData(SAMPLE_DRAG_MIME, file);
+    e.dataTransfer.setData('text/plain', file);
+  };
+
   return (
     <div className="mb-5 rounded-xl border border-ochre-400/30 bg-ochre-400/5 p-4">
       <div className="flex items-start gap-3">
@@ -664,8 +670,8 @@ function SampleEvidencePack() {
             Want to try the wizard end-to-end?
           </p>
           <p className="text-sm text-ink-900 mb-2">
-            Download our four sample documents and upload them below — same files the
-            one-click demo uses, formatted to show you what good evidence looks like.
+            Drag any of these into the evidence box below, or click to download. Same files the
+            one-click demo uses — they show you what good evidence looks like.
           </p>
           <div className="flex flex-wrap gap-2">
             {SAMPLE_EVIDENCE.map((s) => (
@@ -673,8 +679,10 @@ function SampleEvidencePack() {
                 key={s.file}
                 href={`/sample-evidence/${s.file}`}
                 download
-                title={s.desc}
-                className="text-xs font-medium px-3 py-1.5 rounded-lg bg-white border border-ochre-400/40 text-ink-900 hover:border-ochre-500 hover:bg-ochre-400/10 transition inline-flex items-center gap-1.5"
+                draggable
+                onDragStart={(e) => handleDragStart(e, s.file)}
+                title={`Drag onto the evidence box, or click to download. ${s.desc}`}
+                className="text-xs font-medium px-3 py-1.5 rounded-lg bg-white border border-ochre-400/40 text-ink-900 hover:border-ochre-500 hover:bg-ochre-400/10 transition inline-flex items-center gap-1.5 cursor-grab active:cursor-grabbing select-none"
               >
                 <Download size={12} /> {s.label}
               </a>

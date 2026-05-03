@@ -21,6 +21,8 @@ const iconFor = (name: string) => {
   return FileText;
 };
 
+export const SAMPLE_DRAG_MIME = 'application/x-claimready-sample';
+
 export function EvidenceUpload({ files, onChange }: Props) {
   const [isOver, setOver] = useState(false);
 
@@ -38,6 +40,34 @@ export function EvidenceUpload({ files, onChange }: Props) {
     [files, onChange],
   );
 
+  const handleDrop = useCallback(
+    async (e: React.DragEvent) => {
+      e.preventDefault();
+      setOver(false);
+
+      const sampleNames = e.dataTransfer.getData(SAMPLE_DRAG_MIME);
+      if (sampleNames) {
+        const list = sampleNames.split('\n').map((s) => s.trim()).filter(Boolean);
+        const fetched = await Promise.all(
+          list.map(async (name) => {
+            const r = await fetch(`/sample-evidence/${name}`);
+            if (!r.ok) throw new Error(`could not fetch ${name}`);
+            const blob = await r.blob();
+            const mime = blob.type || (name.endsWith('.eml') ? 'message/rfc822' : 'text/plain');
+            return new File([blob], name, { type: mime, lastModified: Date.now() });
+          }),
+        );
+        if (fetched.length) ingest(fetched);
+        return;
+      }
+
+      if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+        ingest(e.dataTransfer.files);
+      }
+    },
+    [ingest],
+  );
+
   return (
     <div className="space-y-5">
       <div
@@ -46,11 +76,7 @@ export function EvidenceUpload({ files, onChange }: Props) {
           setOver(true);
         }}
         onDragLeave={() => setOver(false)}
-        onDrop={(e) => {
-          e.preventDefault();
-          setOver(false);
-          if (e.dataTransfer.files) ingest(e.dataTransfer.files);
-        }}
+        onDrop={handleDrop}
         className={clsx(
           'rounded-2xl border-2 border-dashed p-10 text-center transition',
           isOver
