@@ -39,6 +39,12 @@ input, textarea, select {
   width: 100%;
   transition: border-color 120ms ease, box-shadow 120ms ease;
 }
+textarea {
+  font-family: inherit;
+  line-height: 1.5;
+  resize: vertical;
+  min-height: 64px;
+}
 input:focus, textarea:focus, select:focus {
   outline: none;
   border-color: #3F5F46;

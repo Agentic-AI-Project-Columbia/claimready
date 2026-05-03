@@ -375,7 +375,8 @@ export default function Page() {
               </select>
             </Field>
             <Field label="Why this borough is proper" span="full">
-              <input
+              <textarea
+                rows={2}
                 value={intake.venue.basis}
                 onChange={(e) =>
                   setIntake((p) => ({ ...p, venue: { ...p.venue, basis: e.target.value } }))
