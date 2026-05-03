@@ -33,6 +33,7 @@ testpaths = ["tests"]
 asyncio_mode = "auto"
 markers = [
     "integration: requires live Gemini API credentials",
+    "smoke: opt-in live endpoint acceptance checks",
 ]
 addopts = "--cov=. --cov-report=term-missing --cov-config=pyproject.toml -x"
 

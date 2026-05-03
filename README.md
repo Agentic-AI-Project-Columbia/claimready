@@ -200,6 +200,26 @@ cd backend
 pytest
 ```
 
+Fast unit-only checks:
+
+```bash
+cd backend
+pytest -m "not integration"
+```
+
+Live smoke checks against a deployed or local backend:
+
+```bash
+cd backend
+python scripts/smoke_live.py --base-url https://claimready-backend-7pj7nolpla-ue.a.run.app --timeout 90
+
+# or through pytest
+$env:CLAIMREADY_SMOKE_BASE_URL = "https://claimready-backend-7pj7nolpla-ue.a.run.app"
+# Optional if the backend has API_KEY configured:
+# $env:CLAIMREADY_API_KEY = "..."
+pytest -m smoke -q
+```
+
 ---
 
 ## Deployment
