@@ -24,3 +24,28 @@ BOROUGH_COURT_ADDRESS: dict[str, str] = {
     "Queens": "89-17 Sutphin Boulevard, Jamaica, NY 11435",
     "Staten Island": "927 Castleton Avenue, Staten Island, NY 10310",
 }
+
+BOROUGH_FILING_INFO: dict[str, dict[str, str]] = {
+    "Manhattan": {
+        "clerk_room": "Small Claims Clerk, Room 118",
+        "evening_part": "Evening trial parts run Tue/Wed/Thu (verify with clerk).",
+    },
+    "Bronx": {
+        "clerk_room": "Small Claims Clerk, Room 409",
+        "evening_part": "Evening trial parts run Tue/Wed/Thu (verify with clerk).",
+    },
+    "Brooklyn": {
+        "clerk_room": "Small Claims Clerk, Room 302",
+        "evening_part": "Evening trial parts run Tue/Wed/Thu (verify with clerk).",
+    },
+    "Queens": {
+        "clerk_room": "Small Claims Clerk, Room 103",
+        "evening_part": "Evening trial parts run Tue/Wed/Thu (verify with clerk).",
+    },
+    "Staten Island": {
+        "clerk_room": "Small Claims Clerk, Room 201",
+        "evening_part": "Daytime trials only — no evening part. Plan to take time off work.",
+    },
+}
+
+CIVIL_COURT_INFO_URL = "https://www.nycourts.gov/courts/nyc/smallclaims/"

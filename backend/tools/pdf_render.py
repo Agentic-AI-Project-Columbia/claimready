@@ -5,6 +5,7 @@ Produces a single merged PDF:
   2. Statement of Claim — mirrors CIV-SC-50 layout
   3. Demand letter — formal pre-litigation notice
   4. Exhibit index — list of evidence files with labels
+  5. Filing guide  — borough-specific, step-by-step pro-se walkthrough
 
 Design system
   Forest green  #2F4A36  — section headers, rules, accent
@@ -52,7 +53,7 @@ CREAM       = colors.HexColor("#FAF7F2")
 RULE_GREY   = colors.HexColor("#E8DFCE")
 MID_GREY    = colors.HexColor("#C9BBA0")
 
-from config import BOROUGH_COURT_ADDRESS
+from config import BOROUGH_COURT_ADDRESS, BOROUGH_FILING_INFO, CIVIL_COURT_INFO_URL
 
 W = 6.5 * inch   # usable text width
 
@@ -714,6 +715,202 @@ def _render_exhibit_index(story, st, facts: CaseFacts):
     story.append(t)
 
 
+# ── Filing guide ───────────────────────────────────────────────────────────────
+
+def _guide_section(story, st, title: str, body_blocks: list):
+    """Render a guide section: green heading + a stack of body paragraphs/tables."""
+    story.append(_section_header(title, st))
+    for block in body_blocks:
+        story.append(block)
+    story.append(Spacer(1, 0.12 * inch))
+
+
+def _bullet(text: str, st: dict, indent: float = 0.18) -> Paragraph:
+    style = ParagraphStyle(
+        "bullet", parent=st["body_left"], leftIndent=indent * inch,
+        bulletIndent=0.04 * inch, spaceAfter=3, leading=14,
+    )
+    return Paragraph(f"•&nbsp;&nbsp;{text}", style)
+
+
+def _render_filing_guide(story, st, facts: CaseFacts):
+    borough = facts.venue.borough or "[borough]"
+    court_addr = BOROUGH_COURT_ADDRESS.get(borough, "[verify with the clerk]")
+    info = BOROUGH_FILING_INFO.get(borough, {})
+    clerk_room = info.get("clerk_room", "Small Claims Clerk's office")
+    evening_part = info.get("evening_part", "Verify trial-part hours with the clerk.")
+    principal = facts.damages.principal
+    fee = "$20.00" if principal <= 1000 else "$25.00"
+    def_name = facts.defendant.dos_entity_name or facts.defendant.name or "[defendant]"
+
+    # Banner header for the filing guide
+    banner = Table(
+        [[Paragraph(f"FILING GUIDE — {borough.upper()} COUNTY", st["doc_title"])]],
+        colWidths=[W],
+    )
+    banner.setStyle(TableStyle([
+        ("BACKGROUND",    (0, 0), (-1, -1), GREEN),
+        ("TOPPADDING",    (0, 0), (-1, -1), 12),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 12),
+        ("LEFTPADDING",   (0, 0), (-1, -1), 12),
+        ("RIGHTPADDING",  (0, 0), (-1, -1), 12),
+    ]))
+    story.append(banner)
+    story.append(Spacer(1, 0.18 * inch))
+
+    intro = (
+        f"This guide walks you through filing your Statement of Claim against "
+        f"<b>{def_name}</b> in NYC Civil Court, Small Claims Part, "
+        f"<b>{borough} County</b>. The Statement of Claim, demand letter, and "
+        f"exhibits in this packet are the documents you will reference. "
+        f"Verify any specifics with the clerk or at "
+        f"<a href='{CIVIL_COURT_INFO_URL}'>{CIVIL_COURT_INFO_URL}</a>."
+    )
+    story.append(Paragraph(intro, st["body"]))
+    story.append(Spacer(1, 0.1 * inch))
+
+    # ── Section 1: Before you file ────────────────────────────────────────────
+    _guide_section(story, st, "1.  BEFORE YOU FILE — SEND THE DEMAND LETTER", [
+        Paragraph(
+            "Mail the demand letter (Section 3 of this packet) to the defendant via "
+            "<b>USPS Certified Mail with Return Receipt Requested</b>. Keep the green "
+            "card and the certified-mail receipt — they prove the defendant received "
+            "notice and become Exhibit D at trial.",
+            st["body"],
+        ),
+        Paragraph(
+            "Wait <b>14 days</b> from the day the defendant signs for the letter. "
+            "If payment does not arrive in that window, proceed to file.",
+            st["body"],
+        ),
+    ])
+
+    # ── Section 2: Where & when ───────────────────────────────────────────────
+    where_rows = [
+        _info_row("COURT", f"NYC Civil Court — Small Claims Part, {borough} County", st),
+        _info_row("ADDRESS", court_addr, st),
+        _info_row("CLERK", clerk_room, st),
+        _info_row("FILING HOURS", "Daytime: typically 9:00 AM – 4:30 PM, Mon–Fri (confirm with clerk)", st),
+        _info_row("EVENING PART", evening_part, st),
+        _info_row("FILING FEE", f"{fee} (your principal is {_money(principal)})", st),
+        _info_row("PAYMENT", "Cash, money order, or certified check payable to 'Clerk of the Civil Court'. Most courts also accept credit/debit at the cashier.", st),
+    ]
+    where_t = Table(where_rows, colWidths=[1.3 * inch, 5.2 * inch])
+    where_t.setStyle(TableStyle([
+        ("VALIGN",        (0, 0), (-1, -1), "TOP"),
+        ("BACKGROUND",    (0, 0), (-1, -1), CREAM),
+        ("BOX",           (0, 0), (-1, -1), 0.5, RULE_GREY),
+        ("LEFTPADDING",   (0, 0), (-1, -1), 8),
+        ("RIGHTPADDING",  (0, 0), (-1, -1), 8),
+        ("TOPPADDING",    (0, 0), (-1, -1), 5),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
+    ]))
+    _guide_section(story, st, "2.  WHERE & WHEN TO FILE", [where_t])
+
+    # ── Section 3: Filling out CIV-SC-50 ──────────────────────────────────────
+    _guide_section(story, st, "3.  COMPLETING THE STATEMENT OF CLAIM (CIV-SC-50)", [
+        Paragraph(
+            "The clerk gives you a blank CIV-SC-50 form. Section 2 of this packet is the "
+            "filled-out version you will copy from. Match the fields exactly:",
+            st["body"],
+        ),
+        _bullet("<b>Plaintiff name & address</b> — your full legal name and home/business address.", st),
+        _bullet(f"<b>Defendant name</b> — use the exact NY DOS entity name: <b>{def_name}</b>. Do not abbreviate or guess.", st),
+        _bullet(
+            f"<b>Service-of-process address</b> — the address on file with NY DOS: "
+            f"<b>{facts.defendant.service_address or '[from packet cover]'}</b>. "
+            f"This is where the clerk mails the summons.",
+            st,
+        ),
+        _bullet("<b>Brief statement of claim</b> — one or two plain-English sentences (e.g., \"Unpaid invoice for design services performed under written contract.\"). The full numbered allegations are in your packet.", st),
+        _bullet(f"<b>Amount</b> — enter the <b>principal only</b> ({_money(principal)}). The court calculates statutory interest; do <i>not</i> add it on the form.", st),
+        _bullet("<b>Place where claim arose</b> — the borough where the contract was performed, signed, or where the defendant has its principal office. This is the basis for venue stated in your packet.", st),
+        Paragraph(
+            "<b>If you cannot afford the fee:</b> ask the clerk for a <i>Poor Person's "
+            "Order</i> motion (CPLR § 1101). You file an affidavit of indigence and "
+            "the fee is waived if granted.",
+            st["body"],
+        ),
+    ])
+
+    # ── Section 4: After filing ───────────────────────────────────────────────
+    _guide_section(story, st, "4.  AFTER YOU FILE", [
+        _bullet("The clerk assigns an <b>Index Number</b> — write it on every page of your packet.", st),
+        _bullet("The clerk mails a <b>Notice of Claim</b> to the defendant by certified mail at the service-of-process address.", st),
+        _bullet("If the certified mail is returned undelivered, the clerk will notify you. You may need to re-serve at a different address — call the clerk's office for next steps.", st),
+        _bullet("A <b>trial date</b> is typically set within <b>45 days</b>. You will receive the date by mail.", st),
+        _bullet("If you need to reschedule, file a written request with the clerk <i>at least 7 days</i> before the trial date.", st),
+    ])
+
+    story.append(PageBreak())
+
+    # ── Section 5: Trial day ──────────────────────────────────────────────────
+    _guide_section(story, st, "5.  ON YOUR TRIAL DATE", [
+        _bullet("Arrive <b>30 minutes early</b>. Bring photo ID, this packet, and the <b>originals</b> of every exhibit (the clerk and judge inspect originals, not copies).", st),
+        _bullet("Bring <b>two extra copies</b> of each exhibit — one for the judge, one for the defendant.", st),
+        _bullet("Check in with the courtroom clerk. The clerk may offer <b>arbitration</b> (a volunteer attorney decides the case the same day, the decision is final). Trial before a judge takes longer but the decision can be appealed. You choose.", st),
+        _bullet("When called, state your case briefly: <i>what was promised, what you delivered, what was not paid, what you are owed.</i> Hand exhibits to the judge in the order they appear in your packet.", st),
+        _bullet("Address the judge as <b>\"Your Honor.\"</b> Speak only when asked. Do not interrupt the defendant.", st),
+        _bullet("If the defendant <b>does not appear</b>, ask the judge for a <b>default judgment</b>. You still must briefly prove your case.", st),
+    ])
+
+    # ── Section 6: After judgment ─────────────────────────────────────────────
+    _guide_section(story, st, "6.  IF YOU WIN — COLLECTING THE JUDGMENT", [
+        Paragraph(
+            "A judgment is not a check. It is a court order saying the defendant owes "
+            "you money. If they do not pay voluntarily, you must collect.",
+            st["body"],
+        ),
+        _bullet("Wait <b>30 days</b> after entry of judgment for the appeal window to close.", st),
+        _bullet("Send a <b>written demand for payment</b> to the defendant referencing the index number and judgment amount.", st),
+        _bullet("If unpaid, serve an <b>Information Subpoena with Restraining Notice</b> on the defendant's bank to freeze the account, or on the defendant directly to compel disclosure of assets.", st),
+        _bullet("Hire a <b>NYC Marshal</b> (not the Sheriff) to levy on bank accounts or business receivables. Marshals charge a fee but are paid out of what they collect.", st),
+        _bullet("A judgment is enforceable for <b>20 years</b> and accrues interest at 9% per annum until paid.", st),
+    ])
+
+    # ── Section 7: Quick checklist ────────────────────────────────────────────
+    checklist_rows = [
+        [Paragraph("☐", st["caption"]), Paragraph("Demand letter mailed via certified mail (green-card receipt saved)", st["body_left"])],
+        [Paragraph("☐", st["caption"]), Paragraph("14 days elapsed since defendant received the letter", st["body_left"])],
+        [Paragraph("☐", st["caption"]), Paragraph("Two extra copies of every exhibit printed", st["body_left"])],
+        [Paragraph("☐", st["caption"]), Paragraph(f"Filing fee ready: {fee} (cash, money order, or certified check)", st["body_left"])],
+        [Paragraph("☐", st["caption"]), Paragraph("Photo ID for the courthouse security check", st["body_left"])],
+        [Paragraph("☐", st["caption"]), Paragraph("Index number written on every page after the clerk assigns it", st["body_left"])],
+        [Paragraph("☐", st["caption"]), Paragraph("Trial date noted — arrive 30 minutes early", st["body_left"])],
+    ]
+    cl_t = Table(checklist_rows, colWidths=[0.3 * inch, 6.2 * inch])
+    cl_t.setStyle(TableStyle([
+        ("VALIGN",        (0, 0), (-1, -1), "TOP"),
+        ("LEFTPADDING",   (0, 0), (-1, -1), 4),
+        ("RIGHTPADDING",  (0, 0), (-1, -1), 4),
+        ("TOPPADDING",    (0, 0), (-1, -1), 3),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
+    ]))
+    _guide_section(story, st, "7.  QUICK CHECKLIST", [cl_t])
+
+    # ── Footer disclaimer ─────────────────────────────────────────────────────
+    disclaimer = Table(
+        [[Paragraph(
+            "<b>Reminder:</b> ClaimReady is not a law firm and does not provide legal "
+            "advice. This guide reflects standard NYC Small Claims procedure as of the "
+            "render date and may not capture every borough-specific quirk or recent "
+            "change. When in doubt, call the clerk's office or consult an attorney.",
+            st["small"],
+        )]],
+        colWidths=[W],
+    )
+    disclaimer.setStyle(TableStyle([
+        ("BACKGROUND",    (0, 0), (-1, -1), colors.HexColor("#F7F7F2")),
+        ("BOX",           (0, 0), (-1, -1), 0.5, RULE_GREY),
+        ("LEFTPADDING",   (0, 0), (-1, -1), 8),
+        ("RIGHTPADDING",  (0, 0), (-1, -1), 8),
+        ("TOPPADDING",    (0, 0), (-1, -1), 6),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
+    ]))
+    story.append(Spacer(1, 0.1 * inch))
+    story.append(disclaimer)
+
+
 # ── Public API ─────────────────────────────────────────────────────────────────
 
 def render_packet(facts: CaseFacts, output_path: Optional[Path] = None) -> bytes:
@@ -739,6 +936,8 @@ def render_packet(facts: CaseFacts, output_path: Optional[Path] = None) -> bytes
     _render_claim(story, st, facts)
     _render_demand_letter(story, st, facts, dmg)
     _render_exhibit_index(story, st, facts)
+    story.append(PageBreak())
+    _render_filing_guide(story, st, facts)
     doc.build(story, onFirstPage=page_decorator, onLaterPages=page_decorator)
     data = buf.getvalue()
     if output_path:
