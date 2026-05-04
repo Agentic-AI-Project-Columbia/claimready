@@ -1,11 +1,15 @@
 """Render the court-ready PDF packet from a CaseFacts.
 
-Produces a single merged PDF:
-  1. Cover sheet   — case summary, filing instructions, checklist
-  2. Statement of Claim — mirrors CIV-SC-50 layout
-  3. Demand letter — formal pre-litigation notice
-  4. Exhibit index — list of evidence files with labels
-  5. Filing guide  — borough-specific, step-by-step pro-se walkthrough
+Produces a single merged PDF, split into two clearly-labeled parts:
+
+  Cover sheet       — case caption, parties, court, total demanded
+  ─ FOR THE COURT (submit these pages to the clerk) ─
+  Statement of Claim — mirrors CIV-SC-50 layout
+  Demand letter      — formal pre-litigation notice (mail first)
+  Exhibit index      — list of evidence files with labels
+  ─ FOR YOU (reference material, keep for your records) ─
+  How to File        — quick 4-step overview
+  Filing guide       — borough-specific, step-by-step pro-se walkthrough
 
 Design system
   Forest green  #2F4A36  — section headers, rules, accent
@@ -358,38 +362,6 @@ def _render_cover(story, st, facts: CaseFacts):
     story.append(disclaimer)
     story.append(Spacer(1, 0.25 * inch))
 
-    # ── Filing steps ──────────────────────────────────────────────────────────
-    story.append(_section_header("HOW TO FILE", st))
-
-    steps = [
-        ("1", "Send the demand letter first.",
-         "Mail it via USPS Certified Mail. Keep the green card receipt — it becomes Exhibit D."),
-        ("2", "Wait 14 days.",
-         "If unpaid, proceed to the clerk's office at the address above with this packet. "
-         f"Filing fee: $20 for claims ≤ $1,000 · $25 for claims up to $10,000. Bring two copies."),
-        ("3", "The clerk serves the defendant.",
-         "The court mails a summons to the service-of-process address on the Statement of Claim. "
-         "A trial date is typically set within 45 days."),
-        ("4", "Appear at trial.",
-         "Bring the originals of every exhibit. The hearing is informal — no lawyer needed. "
-         "The judge decides based on your documents and testimony."),
-    ]
-    for num, bold, detail in steps:
-        step_t = Table(
-            [[Paragraph(num, st["step_num"]),
-              [Paragraph(f"<b>{bold}</b>", st["step_body"]),
-               Paragraph(detail, st["step_body"])]]],
-            colWidths=[0.35 * inch, 6.15 * inch],
-        )
-        step_t.setStyle(TableStyle([
-            ("VALIGN",        (0, 0), (-1, -1), "TOP"),
-            ("TOPPADDING",    (0, 0), (-1, -1), 3),
-            ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
-            ("LEFTPADDING",   (0, 0), (0, -1), 0),
-            ("RIGHTPADDING",  (0, 0), (0, -1), 8),
-        ]))
-        story.append(KeepTogether(step_t))
-
     # ── Jurisdiction notes (if any) ───────────────────────────────────────────
     if facts.jurisdiction_check.issues:
         story.append(Spacer(1, 0.2 * inch))
@@ -413,8 +385,6 @@ def _render_cover(story, st, facts: CaseFacts):
             "Citations: " + " · ".join(facts.jurisdiction_check.citations),
             st["small"],
         ))
-
-    story.append(PageBreak())
 
 
 # ── Statement of Claim ─────────────────────────────────────────────────────────
@@ -715,6 +685,168 @@ def _render_exhibit_index(story, st, facts: CaseFacts):
     story.append(t)
 
 
+# ── Section dividers ──────────────────────────────────────────────────────────
+
+def _render_section_divider(
+    story,
+    st,
+    *,
+    eyebrow: str,
+    title: str,
+    subtitle: str,
+    contents: list[tuple[str, str]],
+    accent: colors.HexColor,
+    accent_bg: colors.HexColor,
+):
+    """Full-page divider that introduces a major section of the packet."""
+    story.append(PageBreak())
+    story.append(Spacer(1, 1.2 * inch))
+
+    eyebrow_p = Paragraph(eyebrow, ParagraphStyle(
+        "divider_eyebrow", parent=st["label"],
+        fontName="Helvetica-Bold", fontSize=10,
+        textColor=accent, alignment=TA_CENTER, leading=12, spaceAfter=8,
+    ))
+    story.append(eyebrow_p)
+
+    banner = Table(
+        [[Paragraph(title, st["doc_title"])]],
+        colWidths=[W],
+    )
+    banner.setStyle(TableStyle([
+        ("BACKGROUND",    (0, 0), (-1, -1), accent),
+        ("TOPPADDING",    (0, 0), (-1, -1), 22),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 22),
+    ]))
+    story.append(banner)
+    story.append(Spacer(1, 0.25 * inch))
+
+    sub = Paragraph(subtitle, ParagraphStyle(
+        "divider_sub", parent=st["body"],
+        fontName="Helvetica", fontSize=12,
+        textColor=INK, alignment=TA_CENTER, leading=16, spaceAfter=18,
+    ))
+    story.append(sub)
+    story.append(Spacer(1, 0.3 * inch))
+
+    in_this_section = Paragraph(
+        "<b>IN THIS SECTION</b>",
+        ParagraphStyle(
+            "divider_label", parent=st["label"],
+            fontName="Helvetica-Bold", fontSize=8,
+            textColor=MID_GREY, leading=10, spaceAfter=8,
+        ),
+    )
+    story.append(in_this_section)
+
+    for item_title, item_desc in contents:
+        row = Table(
+            [[
+                Paragraph("<b>·</b>", ParagraphStyle(
+                    "bullet", parent=st["step_num"],
+                    fontName="Helvetica-Bold", fontSize=14, textColor=accent,
+                )),
+                [
+                    Paragraph(f"<b>{item_title}</b>", st["step_body"]),
+                    Paragraph(item_desc, st["small"]),
+                ],
+            ]],
+            colWidths=[0.25 * inch, W - 0.25 * inch],
+        )
+        row.setStyle(TableStyle([
+            ("VALIGN",        (0, 0), (-1, -1), "TOP"),
+            ("TOPPADDING",    (0, 0), (-1, -1), 4),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+            ("LEFTPADDING",   (0, 0), (-1, -1), 0),
+            ("RIGHTPADDING",  (0, 0), (-1, -1), 0),
+        ]))
+        story.append(KeepTogether(row))
+
+    story.append(PageBreak())
+
+
+def _render_court_divider(story, st):
+    _render_section_divider(
+        story,
+        st,
+        eyebrow="PART 1 OF 2",
+        title="FOR THE COURT",
+        subtitle="Submit these pages to the clerk when you file.",
+        contents=[
+            ("Statement of Claim",
+             "The official form (mirrors CIV-SC-50). The clerk uses this to open the case and serve the defendant."),
+            ("Demand Letter",
+             "Mail this first via USPS Certified Mail. Wait 14 days before filing; keep the green-card receipt as Exhibit D."),
+            ("Exhibit Index",
+             "List of supporting evidence (contract, invoice, emails). Bring the originals to the trial."),
+        ],
+        accent=GREEN,
+        accent_bg=CREAM,
+    )
+
+
+def _render_user_divider(story, st):
+    _render_section_divider(
+        story,
+        st,
+        eyebrow="PART 2 OF 2",
+        title="FOR YOU",
+        subtitle="Reference material — keep these pages. Do not submit to the court.",
+        contents=[
+            ("How to File",
+             "Quick 4-step overview of the filing process — read this first."),
+            ("Filing Guide",
+             "Borough-specific walkthrough with the courthouse address, filing fees, hours, and what happens after you file."),
+        ],
+        accent=GOLD,
+        accent_bg=GOLD_LIGHT,
+    )
+
+
+# ── How to File (quick steps, lives in the FOR YOU section) ───────────────────
+
+def _render_how_to_file(story, st, facts: CaseFacts):
+    """Quick 4-step overview. Was on page 1; now lives in the user-only section."""
+    story.append(_section_header("HOW TO FILE", st))
+    story.append(Paragraph(
+        "Four steps from packet in hand to a trial date. The Filing Guide that follows "
+        "has the borough-specific addresses, fees, and timing.",
+        st["body"],
+    ))
+    story.append(Spacer(1, 0.1 * inch))
+
+    steps = [
+        ("1", "Send the demand letter first.",
+         "Mail it via USPS Certified Mail. Keep the green card receipt — it becomes Exhibit D."),
+        ("2", "Wait 14 days.",
+         "If unpaid, proceed to the clerk's office with this packet. "
+         "Filing fee: $20 for claims ≤ $1,000 · $25 for claims up to $10,000. Bring two copies."),
+        ("3", "The clerk serves the defendant.",
+         "The court mails a summons to the service-of-process address on the Statement of Claim. "
+         "A trial date is typically set within 45 days."),
+        ("4", "Appear at trial.",
+         "Bring the originals of every exhibit. The hearing is informal — no lawyer needed. "
+         "The judge decides based on your documents and testimony."),
+    ]
+    for num, bold, detail in steps:
+        step_t = Table(
+            [[Paragraph(num, st["step_num"]),
+              [Paragraph(f"<b>{bold}</b>", st["step_body"]),
+               Paragraph(detail, st["step_body"])]]],
+            colWidths=[0.35 * inch, W - 0.35 * inch],
+        )
+        step_t.setStyle(TableStyle([
+            ("VALIGN",        (0, 0), (-1, -1), "TOP"),
+            ("TOPPADDING",    (0, 0), (-1, -1), 4),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+            ("LEFTPADDING",   (0, 0), (0, -1), 0),
+            ("RIGHTPADDING",  (0, 0), (0, -1), 8),
+        ]))
+        story.append(KeepTogether(step_t))
+
+    story.append(PageBreak())
+
+
 # ── Filing guide ───────────────────────────────────────────────────────────────
 
 def _guide_section(story, st, title: str, body_blocks: list):
@@ -933,10 +1065,12 @@ def render_packet(facts: CaseFacts, output_path: Optional[Path] = None) -> bytes
     st = _styles()
     story: list = []
     _render_cover(story, st, facts)
+    _render_court_divider(story, st)
     _render_claim(story, st, facts)
     _render_demand_letter(story, st, facts, dmg)
     _render_exhibit_index(story, st, facts)
-    story.append(PageBreak())
+    _render_user_divider(story, st)
+    _render_how_to_file(story, st, facts)
     _render_filing_guide(story, st, facts)
     doc.build(story, onFirstPage=page_decorator, onLaterPages=page_decorator)
     data = buf.getvalue()
