@@ -27,3 +27,6 @@ Project Description.txt
 
 # Local Claude Code settings (per-machine)
 .claude/
+
+# Internal dev notes
+tasks/
