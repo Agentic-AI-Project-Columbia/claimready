@@ -288,7 +288,7 @@ This builds both Docker images, deploys the backend (2 CPU, 2 GiB, 600s timeout)
 
 ## Authors
 
-Built by **Arjun Varma** and **Oranich Jamkachornkiat** as a final project for *Foundations of AI for Business* at Columbia University.
+Built by **Arjun Varma** and **Oranich Jamkachornkiat** as a final project for *IEOR 4576 Agentics AI for Analytics* at Columbia University.
 
 ---
 
