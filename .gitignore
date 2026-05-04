@@ -7,6 +7,7 @@ backend/data/chroma/
 venv/
 *.egg-info/
 .pytest_cache/
+backend/.coverage
 
 # Next.js
 frontend/node_modules/
@@ -15,6 +16,7 @@ frontend/out/
 frontend/build/
 frontend/.vercel/
 frontend/next-env.d.ts
+frontend/tsconfig.tsbuildinfo
 
 # Misc
 .DS_Store
