@@ -82,6 +82,28 @@ The frontend connects via WebSocket to stream every pipeline event as it happens
 
 ---
 
+## Class Concepts Implemented
+
+ClaimReady demonstrates eight core concepts from *Foundations of AI for Business*:
+
+1. **Agent Framework** — Built on the OpenAI Agents SDK using the `Agent`, `Runner.run_streamed`, and `handoffs` primitives, with Vertex AI Gemini 2.5 Flash as the underlying LLM via LiteLLM. See [backend/runtime.py](backend/runtime.py) and [backend/main.py](backend/main.py).
+
+2. **Multi-Agent Pattern (Orchestrator-Handoff)** — A Planner orchestrates four specialist agents (Extractor, DefendantResolver, JurisdictionChecker, Drafter), each with its own system prompt, tool set, and responsibility. The Planner enforces a fixed handoff order and merges partial `CaseFacts` results across the pipeline. See [backend/runtime.py:133](backend/runtime.py:133).
+
+3. **Tool Calling** — Specialist agents call four real tools: `lookup_ny_business` (NY DOS API client), `validate_jurisdiction` (cap/SOL/venue rule engine), `compute_damages` (statutory interest computation), and `search_legal_kb` (RAG retrieval). See [backend/tools/](backend/tools/).
+
+4. **Structured Output / Constrained Generation** — Every agent declares `output_type=CaseFacts`, forcing the LLM to emit a typed Pydantic model. No free-text reasoning passes between agents — only validated structured data, which makes merging across handoffs reliable. See [backend/schema.py](backend/schema.py).
+
+5. **RAG (Retrieval-Augmented Generation)** — ChromaDB ingests a curated 6-document legal corpus (CCA 1805, CPLR 213(2), CPLR 5004, venue rules, filing procedure, sample complaint) at startup; the JurisdictionChecker queries it to ground its validation in authoritative statutes rather than the model's training data. See [backend/tools/rag.py](backend/tools/rag.py) and [backend/corpus/](backend/corpus/).
+
+6. **Multimodal Reasoning** — Image evidence (PNG/JPG/GIF/WebP) is converted to base64 data URLs and passed to Gemini 2.5 Flash as `input_image` parts alongside extracted text. The Extractor reads contracts, emails, screenshots, and invoices in a single multimodal prompt. See [backend/main.py:700](backend/main.py:700).
+
+7. **Two Distinct Retrieval Methods** — RAG over a Chroma vector database (legal corpus) **and** live REST API integration with the NY Department of State SODA endpoint (Active Corporations registry, millions of records). Two genuinely different retrieval paths used by different agents for different purposes. See [backend/tools/rag.py](backend/tools/rag.py) and [backend/tools/dos_lookup.py](backend/tools/dos_lookup.py).
+
+8. **Tracing / Observability** — OpenTelemetry instrumentation wraps every pipeline run with a `pipeline.run` span, and a WebSocket event stream pushes every agent handoff, tool call, and tool result to the frontend in real time. The full event log is also persisted to `events.jsonl` per case for replay after restarts. See [backend/tracing.py](backend/tracing.py) and [backend/main.py:391](backend/main.py:391).
+
+---
+
 ## Architecture
 
 ```
