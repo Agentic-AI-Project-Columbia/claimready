@@ -13,7 +13,6 @@ ClaimReady is a multi-agent system that takes a freelancer's unpaid-invoice evid
 | | URL |
 |---|---|
 | **Frontend** | https://claimready-frontend-7pj7nolpla-ue.a.run.app |
-| **Backend API** | https://claimready-backend-7pj7nolpla-ue.a.run.app |
 
 **One-click demo:** Open the frontend → click **"Run the sample case"** on the welcome screen. No signup or typing required. You'll watch four agents hand off in real time, see tool calls against the live NY DOS API, and download the resulting PDF packet in ~30–60 seconds.
 
