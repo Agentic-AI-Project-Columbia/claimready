@@ -2,7 +2,7 @@
 .env.local
 __pycache__/
 *.pyc
-backend/data/chroma/
+backend/data/
 .venv/
 venv/
 *.egg-info/
