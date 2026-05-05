@@ -149,26 +149,17 @@ story.append(section_p(
 
 story.append(sub_section_p(
     "Pricing ladder.",
-    f'ClaimReady charges $29 per packet at launch and layers in revenue '
-    f'capture as volume justifies the operational lift. '
-    f'<font name="{SERIF_BOLD}">Phase 1</font> is flat $29 to validate '
-    f'willingness-to-pay and accumulate the first thousand cases of '
-    f'testimonials and defendant patterns; the asymmetry it accepts is real '
-    f'(a $1,000 claim pays a 2.9% rate while a $10,000 claim pays only '
-    f'0.3%), but a single price keeps the funnel simple while the product '
-    f'earns trust. <font name="{SERIF_BOLD}">Phase 2</font> adds '
-    f'<font name="{SERIF_BOLD}">1–2% of the claim value at filing</font> '
-    f'on top of the $29 base, charged upfront rather than as a contingency '
-    f'on recovery so there is no collection risk and no '
-    f'unauthorized-practice-of-law framing issue; the trigger is roughly '
-    f'500 cases/month sustained, by which point Stripe metering and '
-    f'value-based capture are worth the engineering work. '
-    f'<font name="{SERIF_BOLD}">Phase 3</font> is B2B distribution: '
-    f'ClaimReady\'s engine white-labeled inside freelancer-facing '
-    f'platforms — Upwork, Fiverr, FreshBooks, QuickBooks Self-Employed — '
-    f'at a $10–$15 wholesale price, with the partner paying acquisition '
-    f'and capturing the freelancer-retention benefit, unlocked once '
-    f'consumer-channel CAC and packet-quality metrics are proven.',
+    f'ClaimReady starts with simple flat pricing, then adds value capture '
+    f'once usage proves demand. <font name="{SERIF_BOLD}">Phase 1:</font> '
+    f'$29 per packet to validate willingness-to-pay and gather the first '
+    f'thousand testimonials and defendant patterns. '
+    f'<font name="{SERIF_BOLD}">Phase 2:</font> $29 plus 1–2% of claim '
+    f'value at filing, charged upfront rather than as a contingency on '
+    f'recovery; trigger this after roughly 500 sustained cases/month. '
+    f'<font name="{SERIF_BOLD}">Phase 3:</font> B2B distribution inside '
+    f'freelancer-facing platforms — Upwork, Fiverr, FreshBooks, QuickBooks '
+    f'Self-Employed — at a $10–$15 wholesale price, with the partner paying '
+    f'acquisition.',
 ))
 
 # ── Pricing-ladder table ───────────────────────────────────────────────────
@@ -223,14 +214,13 @@ story.append(Spacer(1, 4))
 story.append(sub_section_p(
     "CAC and payback.",
     "Blended CAC at launch is estimated at $15–$30: SEO on the \"how do I "
-    "sue an LLC in NY\" long-tail with borough-specific landing pages, "
-    "presence in r/freelance and freelancer Twitter, and partnerships with "
-    "coworking spaces and small-business accountants. That gives "
+    "sue an LLC in NY\" long-tail, Reddit communities for freelancers and "
+    "personal finance, freelancer Twitter, and partnerships with coworking "
+    "spaces and small-business accountants. That gives "
     "contribution-margin payback of under 1.5× per case at the $29 flat "
     "price and roughly 3× per case once Phase 2 take-rate pricing is live. "
-    "Per-case payback matters more than LTV here — small claims is "
-    "fundamentally episodic, and a business that pays back every "
-    "transaction does not depend on retention assumptions to be solvent.",
+    "Per-case payback matters more than LTV here because small claims is "
+    "episodic.",
 ))
 
 story.append(sub_section_p(
@@ -249,41 +239,32 @@ story.append(sub_section_p(
 
 story.append(section_p(
     "Why these technical choices.",
-    "The agent design mirrors the real filing workflow. The Next.js "
-    "wizard collects only the facts the court needs, reducing user "
-    "confusion. The Extractor reads messy contracts, invoices, emails, "
-    "and screenshots so users do not have to translate evidence into "
-    "legal structure. The DefendantResolver calls the NY Department of "
-    "State dataset because suing the wrong entity or using the wrong "
-    "service address can sink the case. The JurisdictionChecker uses "
-    "deterministic tools and a small Chroma RAG corpus to validate the "
-    "$10,000 cap, statute-of-limitations fit, venue, and citations "
-    "without expensive broad research. Structured Pydantic outputs make "
-    "the PDF renderer reliable. Gemini 2.5 Flash is the right model "
-    "because it supports multimodal, long-context evidence review while "
-    "keeping per-case token cost far below the $29 price.",
+    "The system mirrors the real filing workflow. The Next.js wizard "
+    "collects court-required facts; the Extractor turns messy evidence "
+    "into structure; the DefendantResolver checks the NY Department of "
+    "State registry; and the JurisdictionChecker uses deterministic tools "
+    "plus a small Chroma RAG corpus to validate cap, statute of limitations, "
+    "venue, and citations. Structured Pydantic outputs make the PDF "
+    "renderer reliable. Gemini 2.5 Flash fits because it supports "
+    "multimodal, long-context evidence review while keeping token cost far "
+    "below the $29 price.",
 ))
 
-story.append(section_p(
-    "Risks and mitigations.",
-    f'<font name="{SERIF_ITALIC}">Bar and UPL risk:</font> ClaimReady is '
-    f'positioned as form preparation and educational guidance, not legal '
-    f'advice; every output carries an explicit disclaimer, and complex '
-    f'cases are flagged for attorney review rather than handled. '
-    f'<font name="{SERIF_ITALIC}">Data dependency:</font> the NY DOS '
-    f'Active Corporations API is single-source for defendant resolution '
-    f'today, mitigated by response caching, manual-entry fallback with '
-    f'verification, and a per-state plug architecture so expansion states '
-    f'can use their own registries. '
-    f'<font name="{SERIF_ITALIC}">Model and quality risk:</font> '
-    f'structured Pydantic outputs and deterministic tools for jurisdiction '
-    f'and damages bound the LLM\'s surface area, RAG citations make legal '
-    f'claims auditable, and a packet-review checkpoint keeps the human in '
-    f'the loop before filing. '
-    f'<font name="{SERIF_ITALIC}">Refund and chargeback risk:</font> a '
-    f'"court-ready or your money back" guarantee is feasible because '
-    f'failure modes are concrete and observable, and the $29 ticket caps '
-    f'fraud exposure relative to the trust-signal benefit.',
+story.append(Paragraph(
+    f'<font name="{SERIF_BOLD}">Risks and mitigations.</font><br/>'
+    f'<font name="{SERIF_BOLD}">1. Bar and UPL risk:</font> ClaimReady is form '
+    f'preparation and educational guidance, not legal advice; every output '
+    f'carries a disclaimer, and complex cases are flagged for attorney review.<br/>'
+    f'<font name="{SERIF_BOLD}">2. Data dependency:</font> NY DOS is the source '
+    f'of truth for defendant lookup, mitigated by caching, manual verification '
+    f'fallback, and a per-state registry plug-in path.<br/>'
+    f'<font name="{SERIF_BOLD}">3. Model and quality risk:</font> Pydantic '
+    f'outputs, deterministic jurisdiction tools, RAG citations, and a '
+    f'packet-review checkpoint bound the LLM\'s surface area.<br/>'
+    f'<font name="{SERIF_BOLD}">4. Refund and chargeback risk:</font> the $29 '
+    f'ticket caps exposure, and failure modes are concrete enough to support a '
+    f'"court-ready or your money back" guarantee.',
+    body,
 ))
 
 story.append(Paragraph(
@@ -291,8 +272,9 @@ story.append(Paragraph(
     f'with a partnership path layered on top.<br/>'
     f'<font name="{SERIF_BOLD}">1.</font> SEO on the "how do I sue an LLC in NY" '
     f'long-tail, with borough-specific landing pages and anonymized case-study posts.<br/>'
-    f'<font name="{SERIF_BOLD}">2.</font> Community presence in r/freelance, '
-    f'r/personalfinance, freelancer Twitter, and the Freelancers Union mailing list.<br/>'
+    f'<font name="{SERIF_BOLD}">2.</font> Community presence in Reddit communities '
+    f'for freelancers and personal finance, freelancer Twitter, and the Freelancers '
+    f'Union mailing list.<br/>'
     f'<font name="{SERIF_BOLD}">3.</font> Local partnerships with coworking spaces, '
     f'small-business accountants, and freelance-friendly co-ops, where ClaimReady '
     f'is offered at a member-benefit discount.<br/>'
@@ -305,22 +287,17 @@ story.append(Paragraph(
 
 story.append(section_p(
     "MVP and wedge.",
-    "The product as scoped is an MVP: NYC small-claims, unpaid-invoice "
-    "disputes against NY-registered entities. That narrowness is the "
-    "whole point. Winning one workflow gives ClaimReady real users, real "
-    "packet data, real defendant patterns, and a defensible filing "
-    "engine, all of which generalize. From there, expansion follows two "
-    "axes. First, claim types: security-deposit recovery, breach of "
-    "consumer-services contract, unreturned property, and small-business "
-    "vendor disputes share the same intake-extract-validate-render "
-    "skeleton and only require new templates and rule modules. Second, "
-    "jurisdictions: every U.S. small-claims court has its own cap, venue "
-    "rules, forms, and entity registry, but the agent architecture, "
-    "JurisdictionChecker, and DefendantResolver swap cleanly per state. "
-    "NYC is the wedge because it has the highest density of freelancers, "
-    "a generous $10,000 cap, and a public DOS entity dataset; once the "
-    "unit economics are proven there, the same engine extends to CA, TX, "
-    "IL, and FL with incremental rule work rather than a rewrite.",
+    "The MVP is deliberately narrow: NYC small-claims, unpaid-invoice "
+    "disputes, and NY-registered business defendants. NYC is the wedge "
+    "because it has dense freelancer demand, a generous $10,000 cap, and "
+    "public DOS entity data. Winning this workflow gives ClaimReady real "
+    "users, packet data, defendant patterns, and a reusable filing engine. "
+    "Expansion then follows two paths: "
+    "<font name=\"Times-Bold\">claim types</font> such as security deposits, "
+    "consumer-services contracts, unreturned property, and vendor disputes; "
+    "and <font name=\"Times-Bold\">jurisdictions</font> such as CA, TX, IL, "
+    "and FL, where the same architecture can swap in local caps, venue "
+    "rules, forms, and entity registries.",
 ))
 
 story.append(section_p(
