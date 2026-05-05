@@ -53,25 +53,7 @@ The frontend presents an 8-step guided wizard:
 
 ### Agent Pipeline
 
-When the user submits, the backend orchestrates a four-agent pipeline coordinated by a Planner:
-
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│                           Planner                                    │
-│  Orchestrates handoffs, merges partial results into CaseFacts       │
-└──────────┬──────────┬──────────────────┬──────────────┬─────────────┘
-           │          │                  │              │
-           ▼          ▼                  ▼              ▼
-      Extractor   DefendantResolver  JurisdictionChecker   Drafter
-      ─────────   ────────────────   ───────────────────   ──────
-      Reads each  Calls NY DOS API   Validates monetary    Finalizes
-      evidence    to resolve the     cap ($10k), SOL       CaseFacts,
-      artifact,   legal entity name  (6 yr), venue;        flags any
-      populates   and service        computes statutory    missing
-      CaseFacts   address            9% interest via RAG   required fields
-```
-
-Each specialist produces structured output (`CaseFacts` Pydantic model). After the Drafter completes, the backend renders the PDF using ReportLab.
+When the user submits, the backend orchestrates a four-agent pipeline coordinated by a Planner. Each specialist produces structured output (`CaseFacts` Pydantic model), the Planner merges partial results across handoffs, and after the Drafter completes the backend renders the PDF using ReportLab. See the [architecture diagram](#architecture) below for the full data flow.
 
 ### Real-Time Visibility
 
@@ -103,23 +85,73 @@ ClaimReady demonstrates eight core concepts from *IEOR 4576 Agentics AI for Anal
 
 ## Architecture
 
-```
-Frontend (Next.js 15)                    Backend (FastAPI)
-┌──────────────────────┐                ┌──────────────────────────────────┐
-│  8-step wizard UI    │  POST /api/case│  Spawns async agent pipeline     │
-│  + Evidence uploader │ ──────────────>│                                  │
-│                      │                │  Planner → Extractor             │
-│  AgentTimeline       │  WS /events   │         → DefendantResolver      │
-│  (live event stream) │ <─────────────>│         → JurisdictionChecker    │
-│                      │                │         → Drafter                │
-│  PDF download        │  GET /pdf      │                                  │
-│                      │ <──────────────│  render_packet() → PDF           │
-└──────────────────────┘                └──────────────────────────────────┘
-                                                    │
-                                         ┌──────────┼──────────┐
-                                         ▼          ▼          ▼
-                                      NY DOS     Chroma     ReportLab
-                                      SODA API   (RAG)      (PDF gen)
+```mermaid
+flowchart TD
+    User["User Intake<br/><i>8-step Wizard</i>"]
+    Gateway["FastAPI + WebSocket Gateway<br/><i>backend/main.py</i>"]
+    Orchestrator["Planner / Orchestrator<br/><i>runtime._run_pipeline</i>"]
+
+    Extractor["Stage 1: Extractor<br/><i>multimodal evidence reader</i>"]
+    DefendantResolver["Stage 2: DefendantResolver<br/><i>NY entity verification</i>"]
+    JurisdictionChecker["Stage 3: JurisdictionChecker<br/><i>cap · SOL · venue · damages</i>"]
+    Drafter["Stage 4: Drafter<br/><i>finalize + flag missing fields</i>"]
+
+    Multimodal[("Multimodal Inputs<br/>PDFs · images · emails")]
+    DOSApi[("NY DOS SODA API<br/>Active Corporations")]
+    Chroma[("ChromaDB<br/>6-doc legal corpus")]
+    RuleEngine["Rule Engine<br/><i>tools/jurisdiction.py</i>"]
+
+    PDFRenderer["ReportLab Renderer<br/><i>tools/pdf_render.py</i>"]
+    PDF[/"Court-Ready PDF Packet<br/>Statement · Demand · Index · Guide"/]
+
+    Frontend["Next.js 15 Frontend<br/><i>AgentTimeline + Wizard</i>"]
+
+    User -->|"POST /api/case<br/>+ evidence files"| Gateway
+    Gateway -->|"spawn async pipeline"| Orchestrator
+
+    Orchestrator -->|"Stage 1 handoff"| Extractor
+    Orchestrator -->|"Stage 2 handoff"| DefendantResolver
+    Orchestrator -->|"Stage 3 handoff"| JurisdictionChecker
+    Orchestrator -->|"Stage 4 handoff"| Drafter
+
+    Extractor -.->|"partial CaseFacts"| Orchestrator
+    DefendantResolver -.->|"merged CaseFacts"| Orchestrator
+    JurisdictionChecker -.->|"merged CaseFacts"| Orchestrator
+    Drafter -.->|"finalized CaseFacts"| Orchestrator
+
+    Extractor -->|"input_image / input_text"| Multimodal
+    DefendantResolver -->|"lookup_ny_business(name)"| DOSApi
+    DOSApi -.->|"legal entity + service address"| DefendantResolver
+    JurisdictionChecker -->|"search_legal_kb(query)"| Chroma
+    Chroma -.->|"top-k statutes"| JurisdictionChecker
+    JurisdictionChecker -->|"validate_jurisdiction<br/>compute_damages"| RuleEngine
+    RuleEngine -.->|"cap / SOL / 9% interest"| JurisdictionChecker
+
+    Orchestrator -->|"render_packet(facts)"| PDFRenderer
+    PDFRenderer --> PDF
+
+    Orchestrator -.->|"WebSocket /api/case/{id}/events<br/>handoffs · tool calls · results"| Frontend
+    PDF -->|"GET /api/case/{id}/pdf"| Frontend
+
+    classDef user fill:#334155,stroke:#94a3b8,color:#f1f5f9
+    classDef gateway fill:#0f766e,stroke:#5eead4,color:#ffffff
+    classDef orchestrator fill:#c2410c,stroke:#fdba74,color:#ffffff
+    classDef agent fill:#1d4ed8,stroke:#93c5fd,color:#ffffff
+    classDef tool fill:#475569,stroke:#cbd5e1,color:#ffffff
+    classDef store fill:#3730a3,stroke:#a5b4fc,color:#ffffff
+    classDef external fill:#7e22ce,stroke:#d8b4fe,color:#ffffff
+    classDef output fill:#15803d,stroke:#86efac,color:#ffffff
+    classDef frontend fill:#be185d,stroke:#f9a8d4,color:#ffffff
+
+    class User user
+    class Gateway gateway
+    class Orchestrator orchestrator
+    class Extractor,DefendantResolver,JurisdictionChecker,Drafter agent
+    class RuleEngine,PDFRenderer tool
+    class Multimodal,Chroma store
+    class DOSApi external
+    class PDF output
+    class Frontend frontend
 ```
 
 ---
