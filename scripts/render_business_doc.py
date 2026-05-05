@@ -1,14 +1,15 @@
-"""Render business_document.pdf via ReportLab.
+"""Render ClaimReady_Business_Document.pdf via ReportLab.
 
 The .tex file is the canonical source. This script is a fallback renderer
 for environments without a LaTeX toolchain (no pdflatex / xelatex / tectonic).
-For the camera-ready render, prefer pdflatex business_document.tex or Overleaf;
+For the camera-ready render, prefer pdflatex ClaimReady_Business_Document.tex
+or Overleaf;
 the visual fidelity of the LaTeX rendering is slightly higher.
 
 Run:
     python scripts/render_business_doc.py
 
-Writes business_document.pdf in the project root.
+Writes ClaimReady_Business_Document.pdf in the project root.
 """
 
 from __future__ import annotations
@@ -29,7 +30,7 @@ from reportlab.platypus import (
     TableStyle,
 )
 
-# ── Brand palette (matches business_document.tex) ──────────────────────────
+# ── Brand palette (matches ClaimReady_Business_Document.tex) ───────────────
 INK = colors.HexColor("#1F2421")
 GREEN = colors.HexColor("#355E3B")
 RULE_GREY = colors.HexColor("#9C9C92")
@@ -86,7 +87,7 @@ def sub_section_p(lead: str, rest: str) -> Paragraph:
     )
 
 
-# ── Content (mirrors business_document.tex) ────────────────────────────────
+# ── Content (mirrors ClaimReady_Business_Document.tex) ─────────────────────
 
 story: list = []
 
@@ -349,7 +350,7 @@ story.append(Paragraph(sources_para, small_style))
 
 # ── Build ───────────────────────────────────────────────────────────────────
 def main():
-    out = Path(__file__).resolve().parent.parent / "business_document.pdf"
+    out = Path(__file__).resolve().parent.parent / "ClaimReady_Business_Document.pdf"
     doc = SimpleDocTemplate(
         str(out),
         pagesize=LETTER,
