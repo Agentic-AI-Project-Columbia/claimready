@@ -12,6 +12,7 @@ import {
   ChevronDown,
   ChevronUp,
   RotateCcw,
+  GraduationCap,
 } from 'lucide-react';
 import clsx from 'clsx';
 
