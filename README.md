@@ -162,12 +162,12 @@ flowchart TD
 |-------|-----------|---------|
 | LLM | Gemini 2.5 Flash (Vertex AI) | Multimodal reasoning via LiteLLM |
 | Agent Framework | OpenAI Agents SDK | Multi-agent orchestration with handoffs + structured output |
-| Backend | FastAPI + uvicorn | REST API + WebSocket streaming |
+| Backend | Python 3.11 + FastAPI + uvicorn | REST API + WebSocket streaming |
 | Vector DB | ChromaDB (local, persisted) | RAG over 6-document legal corpus |
-| PDF | ReportLab + pypdf | Programmatic PDF generation |
+| PDF | ReportLab + pypdf | PDF packet rendering + uploaded PDF text extraction |
 | External Data | NY Open Data SODA API | Active Corporations lookup (no auth) |
-| Frontend | Next.js 15 (App Router) + Tailwind | Wizard UI + real-time event timeline |
-| Deploy | Cloud Build → Cloud Run | Automated CI/CD, two services |
+| Frontend | Next.js 15 (App Router) + React 19 + TypeScript + Tailwind | Wizard UI + real-time event timeline |
+| Build & Deploy | uv, Docker, Cloud Build → Cloud Run | Locked Python installs, container builds, automated two-service deploy |
 
 ---
 
