@@ -175,6 +175,9 @@ flowchart TD
 
 ```
 .
+├── ClaimReady_Business_Document.pdf   # Final business writeup
+├── ClaimReady_Business_Document.tex   # LaTeX source for business writeup
+├── ClaimReady_Final_Slides.pdf        # Final presentation deck
 ├── backend/
 │   ├── main.py              # FastAPI app — endpoints + agent driver
 │   ├── runtime.py           # Planner + 4 specialist agent definitions
@@ -183,6 +186,8 @@ flowchart TD
 │   ├── demo_scenario.py     # Bundled demo case + evidence
 │   ├── events.py            # Event type definitions
 │   ├── tracing.py           # OpenTelemetry instrumentation
+│   ├── pyproject.toml       # Python dependencies + pytest config
+│   ├── uv.lock              # Locked backend dependency graph
 │   ├── tools/
 │   │   ├── dos_lookup.py    # NY DOS Active Corporations API client
 │   │   ├── jurisdiction.py  # Venue validation + damages computation
@@ -196,12 +201,15 @@ flowchart TD
 │   │   ├── 05_filing_procedure.md
 │   │   └── 06_sample_complaint_breach_of_contract.md
 │   ├── templates/           # Demand letter template
+│   ├── scripts/             # Live smoke-test helpers
 │   ├── tests/               # pytest suite
 │   └── Dockerfile
 ├── frontend/
 │   ├── app/page.tsx         # Main wizard (8 steps)
 │   ├── components/
 │   │   ├── StepShell.tsx    # Reusable step wrapper
+│   │   ├── Field.tsx        # Form field primitives
+│   │   ├── DefendantLookup.tsx
 │   │   ├── EvidenceUpload.tsx
 │   │   ├── AgentTimeline.tsx
 │   │   └── steps/           # Individual wizard step components
@@ -209,7 +217,14 @@ flowchart TD
 │   │   ├── api.ts           # Backend client (REST + WebSocket)
 │   │   ├── types.ts         # TypeScript interfaces
 │   │   └── validation.ts
+│   ├── public/sample-evidence/ # Bundled files for the demo case
+│   ├── package.json         # Next.js dependencies + scripts
+│   ├── tailwind.config.ts   # Tailwind theme
+│   ├── tsconfig.json        # TypeScript config
 │   └── Dockerfile
+├── scripts/
+│   └── render_business_doc.py # ReportLab fallback renderer for the writeup
+├── dev.sh                   # Local backend/frontend dev launcher
 ├── cloudbuild.yaml          # GCP Cloud Build pipeline
 └── deploy.md                # Deployment instructions
 ```
