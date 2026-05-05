@@ -10,11 +10,9 @@ ClaimReady is a multi-agent system that takes a freelancer's unpaid-invoice evid
 
 ## Live Demo
 
-| | URL |
-|---|---|
-| **Frontend** | https://claimready-frontend-7pj7nolpla-ue.a.run.app |
+**Frontend:** https://claimready-frontend-7pj7nolpla-ue.a.run.app
 
-**One-click demo:** Open the frontend → click **"Run the sample case"** on the welcome screen. No signup or typing required. You'll watch four agents hand off in real time, see tool calls against the live NY DOS API, and download the resulting PDF packet in ~30–60 seconds.
+**One-click demo:** Open the frontend → click **"Run the sample case"** on the welcome screen. No signup or typing required. You'll watch four specialist agents hand off in real time, see tool calls against the live NY DOS API, and download the resulting PDF packet in ~30–60 seconds.
 
 The bundled scenario: a Brooklyn freelance designer owed $4,800 by an NYC marketing LLC, backed by a signed contract, invoice, email thread, and follow-up notes.
 
@@ -48,10 +46,10 @@ The frontend presents an 8-step guided wizard:
 2. **Plaintiff** — your name, address, contact info
 3. **Defendant** — business name (the system resolves the rest via NY DOS)
 4. **Contract** — date, scope of work, agreed amount, payment terms
-5. **Performance** — what you delivered, when
-6. **Breach** — date payment was due, nature of breach, amount owed
-7. **Venue** — which NYC borough and why
-8. **Run** — upload evidence, watch agents execute, download PDF
+5. **Breach** — date payment was due, amount owed, venue borough and basis
+6. **Evidence** — upload contracts, invoices, emails, screenshots, and notes
+7. **Review** — confirm the intake before generation
+8. **Run** — watch agents execute, download PDF
 
 ### Agent Pipeline
 
@@ -73,7 +71,7 @@ When the user submits, the backend orchestrates a four-agent pipeline coordinate
       CaseFacts   address            9% interest via RAG   required fields
 ```
 
-Each agent produces structured output (`CaseFacts` Pydantic model). After the Drafter completes, the backend renders the PDF using ReportLab.
+Each specialist produces structured output (`CaseFacts` Pydantic model). After the Drafter completes, the backend renders the PDF using ReportLab.
 
 ### Real-Time Visibility
 
@@ -83,7 +81,7 @@ The frontend connects via WebSocket to stream every pipeline event as it happens
 
 ## Class Concepts Implemented
 
-ClaimReady demonstrates eight core concepts from *Foundations of AI for Business*:
+ClaimReady demonstrates eight core concepts from *IEOR 4576 Agentics AI for Analytics*:
 
 1. **Agent Framework** — Built on the OpenAI Agents SDK using the `Agent`, `Runner.run_streamed`, and `handoffs` primitives, with Vertex AI Gemini 2.5 Flash as the underlying LLM via LiteLLM. See [backend/runtime.py](backend/runtime.py) and [backend/main.py](backend/main.py).
 

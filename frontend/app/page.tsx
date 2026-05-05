@@ -675,7 +675,7 @@ function GraderBanner({ onDemo, starting }: { onDemo: () => void; starting: bool
             We've bundled a realistic case — Brooklyn freelance designer
             owed <b>$4,800</b> by an NYC marketing LLC, with a signed
             contract, an invoice, an email thread, and a follow-up note.
-            One click and you'll see all four agents work end-to-end:
+            One click and you'll see all four specialist agents work end-to-end:
             Extractor → Defendant lookup (NY State) → Jurisdiction check
             (RAG + statutes) → Drafter → downloadable PDF packet.
           </p>
@@ -868,7 +868,7 @@ function ReviewStep({
       onAutofill={onAutofill}
       helpText={
         <>
-          When you click Generate, our planner agent kicks off five
+          When you click Generate, our planner agent kicks off four
           specialists in sequence: Extractor → Defendant lookup →
           Jurisdiction check → Drafter. Watch them work in real time.
         </>

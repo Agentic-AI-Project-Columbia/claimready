@@ -60,7 +60,7 @@ export function ReviewStep({
       title="One last look before we generate."
       helpText={
         <>
-          When you click Generate, our planner agent kicks off five
+          When you click Generate, our planner agent kicks off four
           specialists in sequence: Extractor → Defendant lookup →
           Jurisdiction check → Drafter. Watch them work in real time.
         </>

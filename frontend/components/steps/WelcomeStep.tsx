@@ -116,7 +116,7 @@ function GraderBanner({ onDemo, starting }: { onDemo: () => void; starting: bool
             We've bundled a realistic case — Brooklyn freelance designer
             owed <b>$4,800</b> by an NYC marketing LLC, with a signed
             contract, an invoice, an email thread, and a follow-up note.
-            One click and you'll see all four agents work end-to-end:
+            One click and you'll see all four specialist agents work end-to-end:
             Extractor → Defendant lookup (NY State) → Jurisdiction check
             (RAG + statutes) → Drafter → downloadable PDF packet.
           </p>
