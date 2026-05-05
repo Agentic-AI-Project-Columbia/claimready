@@ -203,7 +203,7 @@ table_rows = [
 ]
 econ_table = Table(
     table_rows,
-    colWidths=[1.20 * inch, 1.55 * inch, 2.10 * inch, 1.95 * inch],
+    colWidths=[1.42 * inch, 1.55 * inch, 1.85 * inch, 1.85 * inch],
 )
 econ_table.setStyle(TableStyle([
     ("LINEABOVE",     (0, 0), (-1, 0), 1.0, INK),     # toprule
@@ -285,22 +285,21 @@ story.append(section_p(
     f'fraud exposure relative to the trust-signal benefit.',
 ))
 
-story.append(section_p(
-    "Go-to-market.",
-    f'Three channels at launch with a partnership path layered on top. '
-    f'<font name="{SERIF_BOLD}">(1)</font> SEO on the "how do I sue an LLC '
-    f'in NY" long-tail, with borough-specific landing pages and anonymized '
-    f'case-study posts. <font name="{SERIF_BOLD}">(2)</font> Community '
-    f'presence in r/freelance, r/personalfinance, freelancer Twitter, and '
-    f'the Freelancers Union mailing list. '
-    f'<font name="{SERIF_BOLD}">(3)</font> Local partnerships with '
-    f'coworking spaces, small-business accountants, and freelance-friendly '
-    f'co-ops, where ClaimReady is offered at a member-benefit discount. '
-    f'<font name="{SERIF_BOLD}">(4)</font> The Phase 3 path: B2B '
-    f'distribution inside freelancer-facing platforms where the partner '
-    f'pays acquisition and ClaimReady captures the engine economics — '
-    f'unlocked once consumer-channel CAC and packet-quality metrics are '
-    f'proven.',
+story.append(Paragraph(
+    f'<font name="{SERIF_BOLD}">Go-to-market.</font> Three channels at launch '
+    f'with a partnership path layered on top.<br/>'
+    f'<font name="{SERIF_BOLD}">1.</font> SEO on the "how do I sue an LLC in NY" '
+    f'long-tail, with borough-specific landing pages and anonymized case-study posts.<br/>'
+    f'<font name="{SERIF_BOLD}">2.</font> Community presence in r/freelance, '
+    f'r/personalfinance, freelancer Twitter, and the Freelancers Union mailing list.<br/>'
+    f'<font name="{SERIF_BOLD}">3.</font> Local partnerships with coworking spaces, '
+    f'small-business accountants, and freelance-friendly co-ops, where ClaimReady '
+    f'is offered at a member-benefit discount.<br/>'
+    f'<font name="{SERIF_BOLD}">4.</font> The Phase 3 path: B2B distribution inside '
+    f'freelancer-facing platforms where the partner pays acquisition and ClaimReady '
+    f'captures the engine economics — unlocked once consumer-channel CAC and '
+    f'packet-quality metrics are proven.',
+    body,
 ))
 
 story.append(section_p(

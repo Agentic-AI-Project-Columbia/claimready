@@ -41,7 +41,7 @@ ClaimReady helps NYC freelancers turn messy contracts, invoices, emails, and scr
 
 \vspace{-1pt}
 \begin{center}
-\begin{tabular}{>{\bfseries}p{1.20in}p{1.50in}p{1.65in}p{1.65in}}
+\begin{tabular}{>{\raggedright\arraybackslash\bfseries}p{1.42in}>{\raggedright\arraybackslash}p{1.55in}>{\raggedright\arraybackslash}p{1.85in}>{\raggedright\arraybackslash}p{1.85in}}
 \toprule
 Item & Phase 1 (Launch) & Phase 2 (Scale) & Phase 3 (Distribution) \\
 \midrule
@@ -63,7 +63,11 @@ CAC payback & \(<1.5\times\) / case & \(\sim\)3\(\times\) / case & Partner-paid 
 
 {\bfseries Risks and mitigations.} \textit{Bar and UPL risk:} ClaimReady is positioned as form preparation and educational guidance, not legal advice; every output carries an explicit disclaimer, and complex cases are flagged for attorney review rather than handled. \textit{Data dependency:} the NY DOS Active Corporations API is single-source for defendant resolution today, mitigated by response caching, manual-entry fallback with verification, and a per-state plug architecture so expansion states can use their own registries. \textit{Model and quality risk:} structured Pydantic outputs and deterministic tools for jurisdiction and damages bound the LLM's surface area, RAG citations make legal claims auditable, and a packet-review checkpoint keeps the human in the loop before filing. \textit{Refund and chargeback risk:} a ``court-ready or your money back'' guarantee is feasible because failure modes are concrete and observable, and the \(\$29\) ticket caps fraud exposure relative to the trust-signal benefit.
 
-{\bfseries Go-to-market.} Three channels at launch with a partnership path layered on top. \textbf{(1)} SEO on the ``how do I sue an LLC in NY'' long-tail, with borough-specific landing pages and anonymized case-study posts. \textbf{(2)} Community presence in r/freelance, r/personalfinance, freelancer Twitter, and the Freelancers Union mailing list. \textbf{(3)} Local partnerships with coworking spaces, small-business accountants, and freelance-friendly co-ops, where ClaimReady is offered at a member-benefit discount. \textbf{(4)} The Phase 3 path: B2B distribution inside freelancer-facing platforms where the partner pays acquisition and ClaimReady captures the engine economics---unlocked once consumer-channel CAC and packet-quality metrics are proven.
+{\bfseries Go-to-market.} Three channels at launch with a partnership path layered on top.\\[-1pt]
+\textbf{1.} SEO on the ``how do I sue an LLC in NY'' long-tail, with borough-specific landing pages and anonymized case-study posts.\\[-1pt]
+\textbf{2.} Community presence in r/freelance, r/personalfinance, freelancer Twitter, and the Freelancers Union mailing list.\\[-1pt]
+\textbf{3.} Local partnerships with coworking spaces, small-business accountants, and freelance-friendly co-ops, where ClaimReady is offered at a member-benefit discount.\\[-1pt]
+\textbf{4.} The Phase 3 path: B2B distribution inside freelancer-facing platforms where the partner pays acquisition and ClaimReady captures the engine economics---unlocked once consumer-channel CAC and packet-quality metrics are proven.
 
 {\bfseries MVP and wedge.} The product as scoped is an MVP: NYC small-claims, unpaid-invoice disputes against NY-registered entities. That narrowness is the whole point. Winning one workflow gives ClaimReady real users, real packet data, real defendant patterns, and a defensible filing engine, all of which generalize. From there, expansion follows two axes. First, claim types: security-deposit recovery, breach of consumer-services contract, unreturned property, and small-business vendor disputes share the same intake-extract-validate-render skeleton and only require new templates and rule modules. Second, jurisdictions: every U.S. small-claims court has its own cap, venue rules, forms, and entity registry, but the agent architecture, JurisdictionChecker, and DefendantResolver swap cleanly per state. NYC is the wedge because it has the highest density of freelancers, a generous \(\$10{,}000\) cap, and a public DOS entity dataset; once the unit economics are proven there, the same engine extends to CA, TX, IL, and FL with incremental rule work rather than a rewrite.
 \vspace{-1pt}
