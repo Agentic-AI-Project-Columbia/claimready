@@ -63,7 +63,7 @@ The frontend connects via WebSocket to stream every pipeline event as it happens
 
 ## Class Concepts Implemented
 
-ClaimReady demonstrates eight core concepts from *IEOR 4576 Agentics AI for Analytics*:
+ClaimReady demonstrates eight core concepts from *IEOR E4576 Agentic AI for Analytics*:
 
 1. **Agent Framework** — Built on the OpenAI Agents SDK using the `Agent`, `Runner.run_streamed`, and `handoffs` primitives, with Vertex AI Gemini 2.5 Flash as the underlying LLM via LiteLLM. See [backend/runtime.py](backend/runtime.py) and [backend/main.py](backend/main.py).
 
@@ -332,7 +332,7 @@ This builds both Docker images, deploys the backend (2 CPU, 2 GiB, 600s timeout)
 
 ## Authors
 
-Built by **Arjun Varma** and **Oranich Jamkachornkiat** as a final project for *IEOR 4576 Agentics AI for Analytics* at Columbia University.
+Built by **Arjun Varma** and **Oranich Jamkachornkiat** as a final project for *IEOR E4576 Agentic AI for Analytics* at Columbia University.
 
 ---
 
