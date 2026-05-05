@@ -8,7 +8,6 @@ import {
   Download,
   FileSearch,
   Shield,
-  GraduationCap,
   PlayCircle,
   ChevronDown,
   ChevronUp,
@@ -624,9 +623,6 @@ function Welcome({
         </div>
       </div>
 
-      {/* ─── Grader / one-click demo banner ─── */}
-      <GraderBanner onDemo={onDemo} starting={demoStarting} />
-
       <div id="how" className="grid grid-cols-1 md:grid-cols-3 gap-6 text-left mt-12">
         <FeatureCard
           icon={<FileSearch />}
@@ -651,61 +647,6 @@ function Welcome({
         a licensed attorney.
       </p>
     </div>
-  );
-}
-
-function GraderBanner({ onDemo, starting }: { onDemo: () => void; starting: boolean }) {
-  return (
-    <section
-      aria-label="Grader demo"
-      className="mt-4 rounded-2xl border border-ochre-400/30 bg-gradient-to-br from-ink-50 to-ochre-400/10 p-6 md:p-8 shadow-paper"
-    >
-      <div className="flex items-start gap-5">
-        <div className="hidden sm:flex w-12 h-12 rounded-xl bg-ochre-400 text-ink-900 items-center justify-center shrink-0 shadow-sm">
-          <GraduationCap size={22} />
-        </div>
-        <div className="flex-1 min-w-0">
-          <p className="text-[11px] uppercase tracking-[0.22em] text-ochre-600 font-semibold mb-1">
-            Reviewing this for class? Skip the typing.
-          </p>
-          <h2 className="font-serif text-2xl text-ink-900 mb-2">
-            Run the full pipeline on a pre-baked scenario.
-          </h2>
-          <p className="text-sm text-ink-900/75 leading-relaxed mb-5 max-w-2xl">
-            We've bundled a realistic case — Brooklyn freelance designer
-            owed <b>$4,800</b> by an NYC marketing LLC, with a signed
-            contract, an invoice, an email thread, and a follow-up note.
-            One click and you'll see all four specialist agents work end-to-end:
-            Extractor → Defendant lookup (NY State) → Jurisdiction check
-            (RAG + statutes) → Drafter → downloadable PDF packet.
-          </p>
-          <div className="flex flex-wrap items-center gap-3">
-            <button
-              onClick={onDemo}
-              disabled={starting}
-              className={clsx(
-                'inline-flex items-center gap-2 px-6 py-3 rounded-xl font-semibold shadow-sm transition',
-                starting
-                  ? 'bg-ink-200 text-ink-300 cursor-wait'
-                  : 'bg-ochre-400 hover:bg-ochre-500 text-ink-900 active:translate-y-[1px]',
-              )}
-            >
-              <PlayCircle size={18} />
-              {starting ? 'Starting demo run…' : 'Run the sample case'}
-            </button>
-            <span className="text-xs text-ink-300">
-              ~30–60 seconds · no signup · no inputs needed
-            </span>
-          </div>
-          <ul className="mt-5 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1.5 text-xs text-ink-900/70">
-            <li>· 4 evidence files auto-loaded</li>
-            <li>· Real NY DOS API call</li>
-            <li>· Real RAG over 6 legal sources</li>
-            <li>· Real PDF generated server-side</li>
-          </ul>
-        </div>
-      </div>
-    </section>
   );
 }
 
@@ -1177,16 +1118,6 @@ function RunStep({
           >
             <Download size={18} /> Download PDF
           </a>
-        </div>
-      )}
-
-      {done && !error && caseId && (
-        <div className="mt-6 rounded-2xl border border-ink-200 overflow-hidden shadow-paper">
-          <iframe
-            src={downloadHref}
-            title="PDF Preview"
-            className="w-full h-[600px] bg-white"
-          />
         </div>
       )}
 
