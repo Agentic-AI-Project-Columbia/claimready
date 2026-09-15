@@ -5,8 +5,9 @@ requires-python = ">=3.11"
 dependencies = [
     "fastapi>=0.115.0",
     "uvicorn[standard]>=0.32.0",
-    "openai-agents[litellm]>=0.7.0",
+    "openai-agents[litellm]>=0.14.6",
     "google-cloud-aiplatform>=1.71.0",
+    "litellm>=1.83.0",
     "pydantic>=2.7.0",
     "chromadb>=0.5.0",
     "pypdf>=4.0.0",

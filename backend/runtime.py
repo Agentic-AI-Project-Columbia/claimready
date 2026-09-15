@@ -39,9 +39,9 @@ def _model() -> LitellmModel:
     """
     import litellm
 
-    model_id = os.getenv("AGENT_MODEL", "vertex_ai/gemini-2.5-flash")
+    model_id = os.getenv("AGENT_MODEL", "vertex_ai/gemini-3.5-flash")
     project = os.getenv("GCP_PROJECT_ID", "agentic-ai-487000")
-    location = os.getenv("GCP_REGION", "us-east1")
+    location = os.getenv("GCP_LOCATION", "global")
     # LiteLLM picks these up automatically:
     os.environ.setdefault("VERTEXAI_PROJECT", project)
     os.environ.setdefault("VERTEXAI_LOCATION", location)

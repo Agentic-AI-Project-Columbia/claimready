@@ -67,7 +67,7 @@ The frontend connects via WebSocket to stream every pipeline event as it happens
 
 ClaimReady demonstrates eight core concepts from *IEOR E4576 Agentic AI for Analytics*:
 
-1. **Agent Framework** — Built on the OpenAI Agents SDK using the `Agent`, `Runner.run_streamed`, and `handoffs` primitives, with Vertex AI Gemini 2.5 Flash as the underlying LLM via LiteLLM. See [backend/runtime.py](backend/runtime.py) and [backend/main.py](backend/main.py).
+1. **Agent Framework** — Built on the OpenAI Agents SDK using the `Agent`, `Runner.run_streamed`, and `handoffs` primitives, with Vertex AI Gemini 3.5 Flash as the underlying LLM via LiteLLM. See [backend/runtime.py](backend/runtime.py) and [backend/main.py](backend/main.py).
 
 2. **Multi-Agent Pattern (Orchestrator-Handoff)** — A Planner orchestrates four specialist agents (Extractor, DefendantResolver, JurisdictionChecker, Drafter), each with its own system prompt, tool set, and responsibility. The Planner enforces a fixed handoff order and merges partial `CaseFacts` results across the pipeline. See [backend/runtime.py:133](backend/runtime.py:133).
 
@@ -77,7 +77,7 @@ ClaimReady demonstrates eight core concepts from *IEOR E4576 Agentic AI for Anal
 
 5. **RAG (Retrieval-Augmented Generation)** — ChromaDB ingests a curated 6-document legal corpus (CCA 1805, CPLR 213(2), CPLR 5004, venue rules, filing procedure, sample complaint) at startup; the JurisdictionChecker queries it to ground its validation in authoritative statutes rather than the model's training data. See [backend/tools/rag.py](backend/tools/rag.py) and [backend/corpus/](backend/corpus/).
 
-6. **Multimodal Reasoning** — Image evidence (PNG/JPG/GIF/WebP) is converted to base64 data URLs and passed to Gemini 2.5 Flash as `input_image` parts alongside extracted text. The Extractor reads contracts, emails, screenshots, and invoices in a single multimodal prompt. See [backend/main.py:700](backend/main.py:700).
+6. **Multimodal Reasoning** — Image evidence (PNG/JPG/GIF/WebP) is converted to base64 data URLs and passed to Gemini 3.5 Flash as `input_image` parts alongside extracted text. The Extractor reads contracts, emails, screenshots, and invoices in a single multimodal prompt. See [backend/main.py:700](backend/main.py:700).
 
 7. **Two Distinct Retrieval Methods** — RAG over a Chroma vector database (legal corpus) **and** live REST API integration with the NY Department of State SODA endpoint (Active Corporations registry, millions of records). Two genuinely different retrieval paths used by different agents for different purposes. See [backend/tools/rag.py](backend/tools/rag.py) and [backend/tools/dos_lookup.py](backend/tools/dos_lookup.py).
 
@@ -162,7 +162,7 @@ flowchart TD
 
 | Layer | Technology | Purpose |
 |-------|-----------|---------|
-| LLM | Gemini 2.5 Flash (Vertex AI) | Multimodal reasoning via LiteLLM |
+| LLM | Gemini 3.5 Flash (Vertex AI) | Multimodal reasoning via LiteLLM |
 | Agent Framework | OpenAI Agents SDK | Multi-agent orchestration with handoffs + structured output |
 | Backend | Python 3.11 + FastAPI + uvicorn | REST API + WebSocket streaming |
 | Vector DB | ChromaDB (local, persisted) | RAG over 6-document legal corpus |

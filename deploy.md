@@ -1,6 +1,6 @@
 # Deployment Guide
 
-**Project:** `agentic-ai-487000` | **Region:** `us-east1` | **Model:** Gemini 2.5 Flash via Vertex AI
+**Project:** `agentic-ai-487000` | **Region:** `us-east1` | **Model:** Gemini 3.5 Flash via Vertex AI
 
 ---
 
@@ -84,8 +84,10 @@ The two Cloud Run URLs are printed in the build log.
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `GCP_PROJECT_ID` | `agentic-ai-487000` | Vertex AI project |
-| `GCP_REGION` | `us-east1` | Vertex AI region |
-| `AGENT_MODEL` | `vertex_ai/gemini-2.5-flash` | LiteLLM model identifier |
+| `GCP_REGION` | `us-east1` | Cloud Run deployment region |
+| `GCP_LOCATION` | `global` | Vertex AI model location |
+| `VERTEXAI_LOCATION` | `GCP_LOCATION` | Optional explicit LiteLLM endpoint override |
+| `AGENT_MODEL` | `vertex_ai/gemini-3.5-flash` | LiteLLM model identifier |
 | `API_KEY` | *(empty)* | Optional API key for endpoint protection |
 | `GCS_EVIDENCE_BUCKET` | *(empty)* | Optional GCS bucket for evidence persistence |
 | `PORT` | `8080` | Server port (Cloud Run sets this automatically) |
@@ -108,6 +110,7 @@ source .venv/bin/activate              # Windows: .venv\Scripts\activate
 gcloud auth application-default login  # one-time, for Vertex AI auth
 export GCP_PROJECT_ID=agentic-ai-487000
 export GCP_REGION=us-east1
+export GCP_LOCATION=global
 uvicorn main:app --reload --port 8000
 
 # Frontend (new terminal)
@@ -142,3 +145,7 @@ The backend needs higher resources because:
 **WebSocket disconnects:** Cloud Run has a 600s idle timeout on WebSocket connections. The agent pipeline should complete well within this window.
 
 **Rate limit errors (429):** The backend has a 5/minute rate limit per IP on case creation. LiteLLM is configured with 3 retries and exponential backoff for Vertex AI quota limits.
+
+### Gemini model migration
+
+The agent default is GA `vertex_ai/gemini-3.5-flash`. The runtime uses `GCP_LOCATION=global` independently of the Cloud Run region. A pre-existing `VERTEXAI_LOCATION` overrides `GCP_LOCATION`; update it to `global` when migrating. The Cloud Build configuration sets both values explicitly. Redeploy the backend to replace existing model overrides. The Agents SDK minimum preserves provider metadata during Gemini tool-call round trips. Historical business-document estimates refer to the original model and are not current pricing quotes.
