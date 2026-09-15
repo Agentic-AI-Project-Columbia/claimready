@@ -49,7 +49,7 @@ steps:
     - --concurrency=8
     - --max-instances=1
     - --port=8080
-    - --set-env-vars=GCP_PROJECT_ID=$PROJECT_ID,GCP_REGION=${_REGION},AGENT_MODEL=vertex_ai/gemini-2.5-flash
+    - --set-env-vars=GCP_PROJECT_ID=$PROJECT_ID,GCP_REGION=${_REGION},GCP_LOCATION=global,VERTEXAI_LOCATION=global,AGENT_MODEL=vertex_ai/gemini-3.5-flash
   waitFor: [push-backend]
 
 # ─── 3. Read backend URL into a workspace file ────────────────────────

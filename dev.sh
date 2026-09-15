@@ -12,6 +12,7 @@ cd "$ROOT/backend"
 GCP_PROJECT_ID=$(gcloud config get-value project 2>/dev/null)
 export GCP_PROJECT_ID
 export GCP_REGION="${GCP_REGION:-us-east1}"
+export GCP_LOCATION="${GCP_LOCATION:-global}"
 export VERTEXAI_PROJECT="${GCP_PROJECT_ID}"
 export GOOGLE_CLOUD_QUOTA_PROJECT="${GCP_PROJECT_ID}"
 export OPENAI_AGENTS_DISABLE_TRACING=1   # no OpenAI key needed; disable SDK tracing
